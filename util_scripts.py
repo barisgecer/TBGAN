@@ -14,18 +14,86 @@ import numpy as np
 import tensorflow as tf
 import scipy.ndimage
 import scipy.misc
+from scipy.spatial.distance import cdist
 
 import config
 import misc
 import tfutil
 import train
 import dataset
+import PIL.Image
+import matplotlib
+matplotlib.use('Qt4Agg')
+from matplotlib import pyplot as pt
+import myutil
 
 #----------------------------------------------------------------------------
 # Generate random images or image grids using a previously trained network.
 # To run, uncomment the appropriate line in config.py and launch train.py.
 
-def generate_fake_images(run_id, snapshot=None, grid_size=[1,1], num_pngs=1, image_shrink=1, png_prefix=None, random_seed=1000, minibatch_size=8):
+def fit_real_images(run_id, snapshot=None, num_pngs=1, image_shrink=1, png_prefix=None, random_seed=1000, minibatch_size=8):
+    network_pkl = misc.locate_network_pkl(run_id, snapshot)
+    if png_prefix is None:
+        png_prefix = misc.get_id_string_for_network_pkl(network_pkl) + '-'
+    random_state = np.random.RandomState(random_seed)
+
+    print('Loading network from "%s"...' % network_pkl)
+    G, D, Gs = misc.load_network_pkl(run_id, snapshot)
+    latent = tf.get_variable('latent',shape=(1,512),trainable=True)
+    label = tf.get_variable('label',shape=(1,0),trainable=True)
+    images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config.num_gpus)
+    sess = tf.get_default_session()
+
+    target = tf.placeholder(tf.float32,name='target')
+    lr = tf.placeholder(tf.float32,name='lr')
+    #loss = tf.reduce_sum(tf.abs(images[0][0] - target))
+    loss = tf.nn.l2_loss(images[0][0] - target)
+    with tf.variable_scope('adam'):
+        opt = tf.train.AdamOptimizer(lr).minimize(loss,var_list=latent)
+
+    sess.run(tf.variables_initializer([latent, label]))
+    sess.run(tf.variables_initializer(tf.global_variables('adam')))
+
+
+    # real_path = '/vol/phoebe/3DMD_SCIENCE_MUSEUM/Colour_UV_maps'
+    # real_path = '/home/baris/data/mein3d_600x600'
+    real_path = '/media/gen/pca_alone'
+    save_path = '/media/gen/gan-pca'
+    #target_im = PIL.Image.open('/media/logs-nvidia/002-fake-images-0/000-pgan-mein3d_tf-preset-v2-2gpus-fp32-VERBOSE-HIST-network-final-000001.png')
+
+    for ind, real in enumerate(myutil.files(real_path)):
+        target_im = myutil.crop_im(PIL.Image.open(os.path.join(real_path,real)))
+        for j in [0.1,0.01,0.001]:
+            for i in range(500):
+                l2,_ = sess.run([loss,opt],{target: myutil.rgb2tf(target_im),lr:j})
+                if i % 100 == 0:
+                    print(l2)
+
+        myutil.concat_image(np.asarray(target_im),myutil.tf2rgb(sess.run(images))).save(os.path.join(save_path,real))
+
+    sess.close()
+
+def generate_fake_images_glob(run_id, snapshot=None, grid_size=[1,1], num_pngs=1, image_shrink=1, png_prefix=None, random_seed=1000, minibatch_size=8):
+    network_pkl = misc.locate_network_pkl(run_id, snapshot)
+    if png_prefix is None:
+        png_prefix = misc.get_id_string_for_network_pkl(network_pkl) + '-'
+    random_state = np.random.RandomState(random_seed)
+
+    print('Loading network from "%s"...' % network_pkl)
+    G, D, Gs = misc.load_network_pkl(run_id, snapshot)
+    latents = random_state.randn(num_pngs, *G.input_shape[1:]).astype(np.float32)
+    dist = cdist(latents,latents)
+    np.fill_diagonal(dist,100)
+    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    for png_idx in range(num_pngs):
+        print('Generating png %d / %d...' % (png_idx, num_pngs))
+        latents = misc.random_latents(np.prod(grid_size), Gs, random_state=random_state)
+        labels = np.zeros([latents.shape[0], 0], np.float32)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
+        misc.save_image_grid(images, os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx)), [0,255], grid_size)
+    open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
+
+def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, num_pngs=1, image_shrink=1, png_prefix=None, random_seed=1000, minibatch_size=8):
     network_pkl = misc.locate_network_pkl(run_id, snapshot)
     if png_prefix is None:
         png_prefix = misc.get_id_string_for_network_pkl(network_pkl) + '-'
@@ -35,12 +103,16 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1], num_pngs=1, ima
     G, D, Gs = misc.load_network_pkl(run_id, snapshot)
 
     result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
-    for png_idx in range(num_pngs):
-        print('Generating png %d / %d...' % (png_idx, num_pngs))
-        latents = misc.random_latents(np.prod(grid_size), Gs, random_state=random_state)
+    for png_idx in range(int(num_pngs/batch_size)):
+        start = time.time()
+        print('Generating png %d-%d / %d... in ' % (png_idx*batch_size,(png_idx+1)*batch_size, num_pngs),end='')
+        latents = misc.random_latents(np.prod(grid_size)*batch_size, Gs, random_state=random_state)
         labels = np.zeros([latents.shape[0], 0], np.float32)
         images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
-        misc.save_image_grid(images, os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx)), [0,255], grid_size)
+        for i in range(batch_size):
+            misc.save_image(images[i], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [0,255], grid_size)
+        print('%0.2f seconds' % (time.time() - start))
+
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
 
 #----------------------------------------------------------------------------
@@ -61,6 +133,43 @@ def generate_interpolation_video(run_id, snapshot=None, grid_size=[1,1], image_s
     shape = [num_frames, np.prod(grid_size)] + Gs.input_shape[1:] # [frame, image, channel, component]
     all_latents = random_state.randn(*shape).astype(np.float32)
     all_latents = scipy.ndimage.gaussian_filter(all_latents, [smoothing_sec * mp4_fps] + [0] * len(Gs.input_shape), mode='wrap')
+    all_latents /= np.sqrt(np.mean(np.square(all_latents)))
+
+    # Frame generation func for moviepy.
+    def make_frame(t):
+        frame_idx = int(np.clip(np.round(t * mp4_fps), 0, num_frames - 1))
+        latents = all_latents[frame_idx]
+        labels = np.zeros([latents.shape[0], 0], np.float32)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
+        grid = misc.create_image_grid(images, grid_size).transpose(1, 2, 0) # HWC
+        if image_zoom > 1:
+            grid = scipy.ndimage.zoom(grid, [image_zoom, image_zoom, 1], order=0)
+        if grid.shape[2] == 1:
+            grid = grid.repeat(3, 2) # grayscale => RGB
+        return grid
+
+    # Generate video.
+    import moviepy.editor # pip install moviepy
+    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    moviepy.editor.VideoClip(make_frame, duration=duration_sec).write_videofile(os.path.join(result_subdir, mp4), fps=mp4_fps, codec='libx264', bitrate=mp4_bitrate)
+    open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
+
+def generate_interpolation_video_bydim(run_id, snapshot=None, grid_size=[1,1], image_shrink=1, image_zoom=1, duration_sec=60.0, smoothing_sec=1.0, mp4=None, mp4_fps=30, mp4_codec='libx265', mp4_bitrate='16M', random_seed=1000, minibatch_size=8, dim=0):
+    network_pkl = misc.locate_network_pkl(run_id, snapshot)
+    if mp4 is None:
+        mp4 = misc.get_id_string_for_network_pkl(network_pkl) + '-lerp.mp4'
+    num_frames = int(np.rint(duration_sec * mp4_fps))
+    random_state = np.random.RandomState(random_seed)
+
+    print('Loading network from "%s"...' % network_pkl)
+    G, D, Gs = misc.load_network_pkl(run_id, snapshot)
+
+    print('Generating latent vectors...')
+    shape = [num_frames, np.prod(grid_size)] + Gs.input_shape[1:] # [frame, image, channel, component]
+    all_latents = np.tile(random_state.randn(*shape[1:3]).astype(np.float32),[shape[0],1,1])
+    #all_latents = random_state.randn(*shape).astype(np.float32)
+    #all_latents = scipy.ndimage.gaussian_filter(all_latents, [smoothing_sec * mp4_fps] + [0] * len(Gs.input_shape), mode='wrap')
+    all_latents[:,0,dim]=np.linspace(-4.0,4.0,shape[0])
     all_latents /= np.sqrt(np.mean(np.square(all_latents)))
 
     # Frame generation func for moviepy.

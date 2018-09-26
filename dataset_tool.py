@@ -604,17 +604,21 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
     img = np.asarray(PIL.Image.open(image_filenames[0]))
     resolution = img.shape[0]
     channels = img.shape[2] if img.ndim == 3 else 1
-    if img.shape[1] != resolution:
-        error('Input images must have the same width and height')
-    if resolution != 2 ** int(np.floor(np.log2(resolution))):
-        error('Input image resolution must be a power-of-two')
+    # if img.shape[1] != resolution:
+    #     error('Input images must have the same width and height')
+    # if resolution != 2 ** int(np.floor(np.log2(resolution))):
+    #     error('Input image resolution must be a power-of-two')
     if channels not in [1, 3]:
         error('Input images must be stored as RGB or grayscale')
     
     with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
         for idx in range(order.size):
-            img = np.asarray(PIL.Image.open(image_filenames[order[idx]]))
+            img = PIL.Image.open(image_filenames[order[idx]])
+            img.crop((41, 0, img.size[0]-42, resolution))
+            new_im = PIL.Image.new("RGB", (512, 512),(0, 0, 0))
+            new_im.paste(img, ((512 - img.size[0]) // 2,(512 - img.size[1]) // 2))
+            img = np.asarray(new_im)
             if channels == 1:
                 img = img[np.newaxis, :, :] # HW => CHW
             else:

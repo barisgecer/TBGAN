@@ -618,6 +618,50 @@ class Network:
                 return tf.group(*ops)
 
     # Run this network for the given NumPy array(s), and return the output(s) as NumPy array(s).
+    def fit(self, *in_arrays,
+        return_as_list  = False,    # True = return a list of NumPy arrays, False = return a single NumPy array, or a tuple if there are multiple outputs.
+        print_progress  = False,    # Print progress to the console? Useful for very large input arrays.
+        minibatch_size  = None,     # Maximum minibatch size to use, None = disable batching.
+        num_gpus        = 1,        # Number of GPUs to use.
+        out_mul         = 1.0,      # Multiplicative constant to apply to the output(s).
+        out_add         = 0.0,      # Additive constant to apply to the output(s).
+        out_shrink      = 1,        # Shrink the spatial dimensions of the output(s) by the given factor.
+        out_dtype       = None,     # Convert the output to the specified data type.
+        **dynamic_kwargs):          # Additional keyword arguments to pass into the network construction function.
+
+        assert len(in_arrays) == self.num_inputs
+        num_items = in_arrays[0].shape[0]
+        if minibatch_size is None:
+            minibatch_size = num_items
+        key = str([list(sorted(dynamic_kwargs.items())), num_gpus, out_mul, out_add, out_shrink, out_dtype])
+
+        # Build graph.
+        if key not in self._run_cache:
+            with absolute_name_scope(self.scope + '/Fit'), tf.control_dependencies(None):
+                in_split = list(zip(*[tf.split(x, num_gpus) for x in in_arrays]))
+                out_split = []
+                for gpu in range(num_gpus):
+                    with tf.device('/gpu:%d' % gpu):
+                        out_expr = self.get_output_for(*in_split[gpu], return_as_list=True, **dynamic_kwargs)
+                        if out_mul != 1.0:
+                            out_expr = [x * out_mul for x in out_expr]
+                        if out_add != 0.0:
+                            out_expr = [x + out_add for x in out_expr]
+                        if out_shrink > 1:
+                            ksize = [1, 1, out_shrink, out_shrink]
+                            out_expr = [tf.nn.avg_pool(x, ksize=ksize, strides=ksize, padding='VALID', data_format='NCHW') for x in out_expr]
+                        if out_dtype is not None:
+                            if tf.as_dtype(out_dtype).is_integer:
+                                out_expr = [tf.round(x) for x in out_expr]
+                            out_expr = [tf.saturate_cast(x, out_dtype) for x in out_expr]
+                        out_split.append(out_expr)
+                self._run_cache[key] = [tf.concat(outputs, axis=0) for outputs in zip(*out_split)]
+
+        # Run minibatches.
+        out_expr = self._run_cache[key]
+        return out_expr
+
+    # Run this network for the given NumPy array(s), and return the output(s) as NumPy array(s).
     def run(self, *in_arrays,
         return_as_list  = False,    # True = return a list of NumPy arrays, False = return a single NumPy array, or a tuple if there are multiple outputs.
         print_progress  = False,    # Print progress to the console? Useful for very large input arrays.
