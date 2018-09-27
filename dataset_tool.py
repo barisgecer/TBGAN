@@ -18,6 +18,8 @@ import PIL.Image
 
 import tfutil
 import dataset
+import menpo.io as mio
+from menpo.image import Image
 
 #----------------------------------------------------------------------------
 
@@ -600,7 +602,9 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
     image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
     if len(image_filenames) == 0:
         error('No input images found')
-        
+
+    good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
+
     img = np.asarray(PIL.Image.open(image_filenames[0]))
     resolution = img.shape[0]
     channels = img.shape[2] if img.ndim == 3 else 1
@@ -614,16 +618,17 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
     with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
         for idx in range(order.size):
-            img = PIL.Image.open(image_filenames[order[idx]])
-            img.crop((41, 0, img.size[0]-42, resolution))
-            new_im = PIL.Image.new("RGB", (512, 512),(0, 0, 0))
-            new_im.paste(img, ((512 - img.size[0]) // 2,(512 - img.size[1]) // 2))
-            img = np.asarray(new_im)
-            if channels == 1:
-                img = img[np.newaxis, :, :] # HW => CHW
-            else:
-                img = img.transpose(2, 0, 1) # HWC => CHW
-            tfr.add_image(img)
+            if any([os.path.splitext(os.path.basename(image_filenames[order[idx]]))[0] == s for s in good_ids]): # Check if it is a good registration
+                img = PIL.Image.open(image_filenames[order[idx]])
+                img.crop((41, 0, img.size[0]-42, resolution))
+                new_im = PIL.Image.new("RGB", (512, 512),(0, 0, 0))
+                new_im.paste(img, ((512 - img.size[0]) // 2,(512 - img.size[1]) // 2))
+                img = np.asarray(new_im)
+                if channels == 1:
+                    img = img[np.newaxis, :, :] # HW => CHW
+                else:
+                    img = img.transpose(2, 0, 1) # HWC => CHW
+                tfr.add_image(img)
 
 #----------------------------------------------------------------------------
 
@@ -721,6 +726,12 @@ def execute_cmdline(argv):
 
     p = add_command(    'create_from_images', 'Create dataset from a directory full of images.',
                                             'create_from_images datasets/mydataset myimagedir')
+    p.add_argument(     'tfrecord_dir',     help='New dataset directory to be created')
+    p.add_argument(     'image_dir',        help='Directory containing the images')
+    p.add_argument(     '--shuffle',        help='Randomize image order (default: 1)', type=int, default=1)
+
+    p = add_command(    'create_from_pkl', 'Create dataset from a directory full of images.',
+                                            'create_from_pkl datasets/mydataset myimagedir')
     p.add_argument(     'tfrecord_dir',     help='New dataset directory to be created')
     p.add_argument(     'image_dir',        help='Directory containing the images')
     p.add_argument(     '--shuffle',        help='Randomize image order (default: 1)', type=int, default=1)
