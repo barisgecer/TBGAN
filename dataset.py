@@ -41,14 +41,16 @@ class TFRecordDataset:
         shuffle_mb      = 4096,     # Shuffle data within specified window (megabytes), 0 = disable shuffling.
         prefetch_mb     = 2048,     # Amount of data to prefetch (megabytes), 0 = disable prefetching.
         buffer_mb       = 256,      # Read buffer size (megabytes).
-        num_threads     = 2):       # Number of concurrent threads.
+        num_threads     = 2,        # Number of concurrent threads.
+        dtype           ='uint8',
+        dynamic_range   =[0, 255]):
 
         self.tfrecord_dir       = tfrecord_dir
         self.resolution         = None
         self.resolution_log2    = None
         self.shape              = []        # [channel, height, width]
-        self.dtype              = 'uint8'
-        self.dynamic_range      = [0, 255]
+        self.dtype              = dtype
+        self.dynamic_range      = dynamic_range
         self.label_file         = label_file
         self.label_size         = None      # [component]
         self.label_dtype        = None
