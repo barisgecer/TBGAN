@@ -111,5 +111,5 @@ if platform.node() != "bg2715" :
     # ----------------------------------------------------------------------------
     # Paths.
 
-    data_dir = '/vol/bitbucket/bg2715/data/'
+    data_dir = '/data/baris'
     result_dir = '/vol/bitbucket/bg2715/logs-pgan'

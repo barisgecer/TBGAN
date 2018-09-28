@@ -658,9 +658,11 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
 
 def create_from_pkl(tfrecord_dir, image_dir, shuffle):
     print('Loading images from "%s"' % image_dir)
-    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
+    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))[0:9000]
     if len(image_filenames) == 0:
         error('No input images found')
+
+    good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
 
     img = mio.import_pickle(image_filenames[0])
     resolution = img.shape[2]
@@ -672,12 +674,13 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
     if channels not in [1, 3]:
         error('Input images must be stored as RGB or grayscale')
 
-    with TFRecordExporter(tfrecord_dir, len(image_filenames[0:100])) as tfr:
-        order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames[0:100]))
+    with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
+        order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
         for idx in range(order.size):
-            img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
-            img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
-            tfr.add_shape(img_resized)
+            if any([os.path.splitext(os.path.basename(image_filenames[order[idx]]))[0] == s for s in good_ids]):  # Check if it is a good registration
+                img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
+                img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
+                tfr.add_shape(img_resized)
 
 
 #----------------------------------------------------------------------------
