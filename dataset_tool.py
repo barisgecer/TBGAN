@@ -19,6 +19,7 @@ import PIL.Image
 import tfutil
 import dataset
 import menpo.io as mio
+import cv2
 
 #----------------------------------------------------------------------------
 
@@ -82,6 +83,30 @@ class TFRecordExporter:
             ex = tf.train.Example(features=tf.train.Features(feature={
                 'shape': tf.train.Feature(int64_list=tf.train.Int64List(value=quant.shape)),
                 'data': tf.train.Feature(bytes_list=tf.train.BytesList(value=[quant.tostring()]))}))
+            tfr_writer.write(ex.SerializeToString())
+        self.cur_images += 1
+
+    def add_shape(self, img):
+        if self.print_progress and self.cur_images % self.progress_interval == 0:
+            print('%d / %d\r' % (self.cur_images, self.expected_images), end='', flush=True)
+        if self.shape is None:
+            self.shape = img.shape
+            self.resolution_log2 = int(np.log2(self.shape[1]))
+            assert self.shape[0] in [1, 3]
+            assert self.shape[1] == self.shape[2]
+            assert self.shape[1] == 2**self.resolution_log2
+            tfr_opt = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.NONE)
+            for lod in range(self.resolution_log2 - 1):
+                tfr_file = self.tfr_prefix + '-r%02d.tfrecords' % (self.resolution_log2 - lod)
+                self.tfr_writers.append(tf.python_io.TFRecordWriter(tfr_file, tfr_opt))
+        assert img.shape == self.shape
+        for lod, tfr_writer in enumerate(self.tfr_writers):
+            if lod:
+                img = img.astype(np.float32)
+                img = (img[:, 0::2, 0::2] + img[:, 0::2, 1::2] + img[:, 1::2, 0::2] + img[:, 1::2, 1::2]) * 0.25
+            ex = tf.train.Example(features=tf.train.Features(feature={
+                'shape': tf.train.Feature(int64_list=tf.train.Int64List(value=img.shape)),
+                'data': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img.tostring()]))}))
             tfr_writer.write(ex.SerializeToString())
         self.cur_images += 1
 
@@ -647,11 +672,12 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
     if channels not in [1, 3]:
         error('Input images must be stored as RGB or grayscale')
 
-    with TFRecordExporter(tfrecord_dir, len(image_filenames[0:10])) as tfr:
-        order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames[0:10]))
+    with TFRecordExporter(tfrecord_dir, len(image_filenames[0:100])) as tfr:
+        order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames[0:100]))
         for idx in range(order.size):
-            img = mio.import_pickle(image_filenames[order[idx]])
-            tfr.add_image(np.resize(img,[3,256,256]))
+            img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
+            img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
+            tfr.add_shape(img_resized)
 
 
 #----------------------------------------------------------------------------

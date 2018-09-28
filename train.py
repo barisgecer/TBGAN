@@ -55,9 +55,10 @@ def setup_snapshot_image_grid(G, training_set,
 
 def process_reals(x, lod, mirror_augment, drange_data, drange_net):
     with tf.name_scope('ProcessReals'):
-        with tf.name_scope('DynamicRange'):
-            x = tf.cast(x, tf.float32)
-            x = misc.adjust_dynamic_range(x, drange_data, drange_net)
+        if drange_data != drange_net:
+            with tf.name_scope('DynamicRange'):
+                x = tf.cast(x, tf.float32)
+                x = misc.adjust_dynamic_range(x, drange_data, drange_net)
         if mirror_augment:
             with tf.name_scope('MirrorAugment'):
                 s = tf.shape(x)

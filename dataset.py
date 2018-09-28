@@ -14,19 +14,6 @@ import tfutil
 #----------------------------------------------------------------------------
 # Parse individual image from a tfrecords file.
 
-def parse_tfrecord_tf(record):
-    features = tf.parse_single_example(record, features={
-        'shape': tf.FixedLenFeature([3], tf.int64),
-        'data': tf.FixedLenFeature([], tf.string)})
-    data = tf.decode_raw(features['data'], tf.uint8)
-    return tf.reshape(data, features['shape'])
-
-def parse_tfrecord_np(record):
-    ex = tf.train.Example()
-    ex.ParseFromString(record)
-    shape = ex.features.feature['shape'].int64_list.value
-    data = ex.features.feature['data'].bytes_list.value[0]
-    return np.fromstring(data, np.uint8).reshape(shape)
 
 #----------------------------------------------------------------------------
 # Dataset class that loads data from tfrecords files.
@@ -73,7 +60,7 @@ class TFRecordDataset:
         for tfr_file in tfr_files:
             tfr_opt = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.NONE)
             for record in tf.python_io.tf_record_iterator(tfr_file, tfr_opt):
-                tfr_shapes.append(parse_tfrecord_np(record).shape)
+                tfr_shapes.append(self.parse_tfrecord_np(record).shape)
                 break
 
         # Autodetect label filename.
@@ -119,7 +106,7 @@ class TFRecordDataset:
                 if tfr_lod < 0:
                     continue
                 dset = tf.data.TFRecordDataset(tfr_file, compression_type='', buffer_size=buffer_mb<<20)
-                dset = dset.map(parse_tfrecord_tf, num_parallel_calls=num_threads)
+                dset = dset.map(self.parse_tfrecord_tf, num_parallel_calls=num_threads)
                 dset = tf.data.Dataset.zip((dset, self._tf_labels_dataset))
                 bytes_per_item = np.prod(tfr_shape) * np.dtype(self.dtype).itemsize
                 if shuffle_mb > 0:
@@ -167,6 +154,19 @@ class TFRecordDataset:
         else:
             return np.zeros([minibatch_size, 0], self.label_dtype)
 
+    def parse_tfrecord_tf(self, record):
+        features = tf.parse_single_example(record, features={
+            'shape': tf.FixedLenFeature([3], tf.int64),
+            'data': tf.FixedLenFeature([], tf.string)})
+        data = tf.decode_raw(features['data'], tf.as_dtype(self.dtype))
+        return tf.reshape(data, features['shape'])
+
+    def parse_tfrecord_np(self, record):
+        ex = tf.train.Example()
+        ex.ParseFromString(record)
+        shape = ex.features.feature['shape'].int64_list.value
+        data = ex.features.feature['data'].bytes_list.value[0]
+        return np.fromstring(data, np.dtype(self.dtype).type).reshape(shape)
 #----------------------------------------------------------------------------
 # Base class for datasets that are generated on the fly.
 
