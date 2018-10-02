@@ -81,9 +81,9 @@ desc += '-fp32'; sched.max_minibatch_per_gpu = {256: 16, 512: 8, 1024: 4}
 # Special modes.
 #desc += '-BENCHMARK'; sched.lod_initial_resolution = 4; sched.lod_training_kimg = 3; sched.lod_transition_kimg = 3; train.total_kimg = (8*2+1)*3; sched.tick_kimg_base = 1; sched.tick_kimg_dict = {}; train.image_snapshot_ticks = 1000; train.network_snapshot_ticks = 1000
 #desc += '-BENCHMARK0'; sched.lod_initial_resolution = 1024; train.total_kimg = 10; sched.tick_kimg_base = 1; sched.tick_kimg_dict = {}; train.image_snapshot_ticks = 1000; train.network_snapshot_ticks = 1000
-desc += '-VERBOSE'; sched.tick_kimg_base = 100; sched.tick_kimg_dict = {}; train.image_snapshot_ticks = 10; train.network_snapshot_ticks = 100
+#desc += '-VERBOSE'; sched.tick_kimg_base = 1; sched.tick_kimg_dict = {}; train.image_snapshot_ticks = 1; train.network_snapshot_ticks = 100
 #desc += '-GRAPH'; train.save_tf_graph = True
-desc += '-HIST'; train.save_weight_histograms = True
+#desc += '-HIST'; train.save_weight_histograms = True
 
 #----------------------------------------------------------------------------
 # Utility scripts.
