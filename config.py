@@ -50,7 +50,7 @@ sched       = EasyDict()                                    # Options for train.
 grid        = EasyDict(size='1080p', layout='random')       # Options for train.setup_snapshot_image_grid().
 
 # desc += '-mein3d_tf';            dataset = EasyDict(tfrecord_dir='mein3d_tf');
-desc += '-mein3d_shape_uv_tf_256';            dataset = EasyDict(tfrecord_dir='mein3d_shape_uv_tf_256',dynamic_range=[-1,1],dtype = 'float32');
+desc += '-mein3d_shape_uv_tf_512';            dataset = EasyDict(tfrecord_dir='mein3d_shape_uv_tf_512',dynamic_range=[-1,1],dtype = 'float32');
 
 # Conditioning & snapshot options.
 #desc += '-cond'; dataset.max_label_size = 'full' # conditioned on full label

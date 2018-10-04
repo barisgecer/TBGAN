@@ -658,7 +658,7 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
 
 def create_from_pkl(tfrecord_dir, image_dir, shuffle):
     print('Loading images from "%s"' % image_dir)
-    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))[0:9000]
+    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
     if len(image_filenames) == 0:
         error('No input images found')
 
@@ -679,8 +679,8 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
         for idx in range(order.size):
             if any([os.path.splitext(os.path.basename(image_filenames[order[idx]]))[0] == s for s in good_ids]):  # Check if it is a good registration
                 img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
-                img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
-                tfr.add_shape(img_resized)
+                # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
+                tfr.add_shape(img)
 
 
 #----------------------------------------------------------------------------
