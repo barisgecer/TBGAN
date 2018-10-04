@@ -26,6 +26,7 @@ import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib import pyplot as pt
 import myutil
+import menpo.io as mio
 
 #----------------------------------------------------------------------------
 # Generate random images or image grids using a previously trained network.
@@ -108,9 +109,10 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, nu
         print('Generating png %d-%d / %d... in ' % (png_idx*batch_size,(png_idx+1)*batch_size, num_pngs),end='')
         latents = misc.random_latents(np.prod(grid_size)*batch_size, Gs, random_state=random_state)
         labels = np.zeros([latents.shape[0], 0], np.float32)
-        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_shrink=image_shrink)
         for i in range(batch_size):
-            misc.save_image(images[i], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [0,255], grid_size)
+            mio.export_pickle(images[i],os.path.join(result_subdir, '%s%06d.pkl' % (png_prefix, png_idx*batch_size+i)))
+            # misc.save_image(images[i], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [0,255], grid_size)
         print('%0.2f seconds' % (time.time() - start))
 
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
