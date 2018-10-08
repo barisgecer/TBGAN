@@ -9,6 +9,8 @@
 # Convenience class that behaves exactly like dict(), but allows accessing
 # the keys and values using the attribute syntax, i.e., "mydict.key = value".
 
+import time
+
 class EasyDict(dict):
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
     def __getattr__(self, name): return self[name]
@@ -49,8 +51,15 @@ D_loss      = EasyDict(func='loss.D_wgangp_acgan')          # Options for discri
 sched       = EasyDict()                                    # Options for train.TrainingSchedule.
 grid        = EasyDict(size='1080p', layout='random')       # Options for train.setup_snapshot_image_grid().
 
-# desc += '-mein3d_tf';            dataset = EasyDict(tfrecord_dir='mein3d_tf');
-desc += '-mein3d_shape_uv_tf_512';            dataset = EasyDict(tfrecord_dir='mein3d_shape_uv_tf_512',dynamic_range=[-1,1],dtype = 'float32');
+desc += '-mein3d_texture_uv_tf_512';            dataset = EasyDict(tfrecord_dir='mein3d_texture_uv_tf_512');
+# desc += '-mein3d_shape_uv_tf_512';            dataset = EasyDict(tfrecord_dir='mein3d_shape_uv_tf_512',dynamic_range=[-1,1],dtype = 'float32');
+# desc += '-mein3d_both_uv_tf_512';            dataset = EasyDict(tfrecord_dir='mein3d_both_uv_tf_512',dynamic_range=[-1,1],dtype = 'float32');
+
+# Continue
+# train.resume_run_id = 8
+# train.resume_kimg = 6549
+# train.resume_time = 1*24*60*60 + 1*60*60 + 35*60
+
 
 # Conditioning & snapshot options.
 #desc += '-cond'; dataset.max_label_size = 'full' # conditioned on full label

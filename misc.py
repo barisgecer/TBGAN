@@ -80,7 +80,11 @@ def save_image(image, filename, drange=[0,1], quality=95):
         img.save(filename)
 
 def save_image_grid(images, filename, drange=[0,1], grid_size=None):
-    convert_to_pil_image(create_image_grid(images, grid_size), drange).save(filename)
+    if images.shape[-3] <=3:
+        convert_to_pil_image(create_image_grid(images, grid_size), drange).save(filename)
+    elif images.shape[-3]==6:
+        convert_to_pil_image(create_image_grid(images[:,0:3,:,:], grid_size), drange).save(filename)
+        convert_to_pil_image(create_image_grid(images[:, 3:6, :, :], grid_size), drange).save(os.path.splitext(filename)[0]+'_shp'+os.path.splitext(filename)[1])
 
 #----------------------------------------------------------------------------
 # Logging of stdout and stderr to a file.

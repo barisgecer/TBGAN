@@ -110,6 +110,30 @@ class TFRecordExporter:
             tfr_writer.write(ex.SerializeToString())
         self.cur_images += 1
 
+    def add_both(self, img):
+        if self.print_progress and self.cur_images % self.progress_interval == 0:
+            print('%d / %d\r' % (self.cur_images, self.expected_images), end='', flush=True)
+        if self.shape is None:
+            self.shape = img.shape
+            self.resolution_log2 = int(np.log2(self.shape[1]))
+            assert self.shape[0] in [1, 6]
+            assert self.shape[1] == self.shape[2]
+            assert self.shape[1] == 2**self.resolution_log2
+            tfr_opt = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.NONE)
+            for lod in range(self.resolution_log2 - 1):
+                tfr_file = self.tfr_prefix + '-r%02d.tfrecords' % (self.resolution_log2 - lod)
+                self.tfr_writers.append(tf.python_io.TFRecordWriter(tfr_file, tfr_opt))
+        assert img.shape == self.shape
+        for lod, tfr_writer in enumerate(self.tfr_writers):
+            if lod:
+                img = img.astype(np.float32)
+                img = (img[:, 0::2, 0::2] + img[:, 0::2, 1::2] + img[:, 1::2, 0::2] + img[:, 1::2, 1::2]) * 0.25
+            ex = tf.train.Example(features=tf.train.Features(feature={
+                'shape': tf.train.Feature(int64_list=tf.train.Int64List(value=img.shape)),
+                'data': tf.train.Feature(bytes_list=tf.train.BytesList(value=[img.tostring()]))}))
+            tfr_writer.write(ex.SerializeToString())
+        self.cur_images += 1
+
     def add_labels(self, labels):
         if self.print_progress:
             print('%-40s\r' % 'Saving labels...', end='', flush=True)
@@ -642,12 +666,11 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
     with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
         for idx in range(order.size):
-            if any([os.path.splitext(os.path.basename(image_filenames[order[idx]]))[0] == s for s in good_ids]): # Check if it is a good registration
                 img = PIL.Image.open(image_filenames[order[idx]])
-                img.crop((41, 0, img.size[0]-42, resolution))
-                new_im = PIL.Image.new("RGB", (512, 512),(0, 0, 0))
-                new_im.paste(img, ((512 - img.size[0]) // 2,(512 - img.size[1]) // 2))
-                img = np.asarray(new_im)
+                # img.crop((41, 0, img.size[0]-42, resolution))
+                # new_im = PIL.Image.new("RGB", (512, 512),(0, 0, 0))
+                # new_im.paste(img, ((512 - img.size[0]) // 2,(512 - img.size[1]) // 2))
+                img = np.asarray(img)
                 if channels == 1:
                     img = img[np.newaxis, :, :] # HW => CHW
                 else:
@@ -677,11 +700,39 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
     with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
         for idx in range(order.size):
-            if any([os.path.splitext(os.path.basename(image_filenames[order[idx]]))[0] == s for s in good_ids]):  # Check if it is a good registration
-                img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
-                # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
-                tfr.add_shape(img)
+            img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
+            # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
+            tfr.add_shape(img)
 
+#----------------------------------------------------------------------------
+
+def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
+    print('Loading images from "%s"' % image_dir)
+
+    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
+    pickle_filenames = sorted(glob.glob(os.path.join(pickle_dir, '*')))
+    if len(image_filenames) == 0:
+        error('No input images found')
+
+    good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
+
+    img = mio.import_pickle(pickle_filenames[0])
+    resolution = img.shape[2]
+    channels = img.shape[0] if img.ndim == 3 else 1
+    if img.shape[1] != resolution:
+        error('Input images must have the same width and height')
+    if resolution != 2 ** int(np.floor(np.log2(resolution))):
+        error('Input image resolution must be a power-of-two')
+    if channels not in [1, 3]:
+        error('Input images must be stored as RGB or grayscale')
+
+    with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
+        order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
+        for idx in range(order.size):
+            img = mio.import_image(image_filenames[order[idx]]).pixels.astype(np.float32)*2-1
+            pkl = mio.import_pickle(pickle_filenames[order[idx]]).astype(np.float32)
+                # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
+            tfr.add_both(np.concatenate([img,pkl]))
 
 #----------------------------------------------------------------------------
 
@@ -787,6 +838,13 @@ def execute_cmdline(argv):
                                             'create_from_pkl datasets/mydataset myimagedir')
     p.add_argument(     'tfrecord_dir',     help='New dataset directory to be created')
     p.add_argument(     'image_dir',        help='Directory containing the images')
+    p.add_argument(     '--shuffle',        help='Randomize image order (default: 1)', type=int, default=1)
+
+    p = add_command(    'create_from_pkl_img', 'Create dataset from a directory full of images.',
+                                            'create_from_pkl_img datasets/mydataset myimagedir myshapedir')
+    p.add_argument(     'tfrecord_dir',     help='New dataset directory to be created')
+    p.add_argument(     'image_dir',        help='Directory containing the images')
+    p.add_argument(     'pickle_dir',        help='Directory containing the shape pickles')
     p.add_argument(     '--shuffle',        help='Randomize image order (default: 1)', type=int, default=1)
 
     p = add_command(    'create_from_hdf5', 'Create dataset from legacy HDF5 archive.',
