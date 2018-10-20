@@ -31,19 +31,15 @@ import menpo.io as mio
 # Generate random images or image grids using a previously trained network.
 # To run, uncomment the appropriate line in config.py and launch train.py.
 
-def get_generator(run_id, snapshot=None, num_pngs=1, image_shrink=1, png_prefix=None, random_seed=1000, minibatch_size=8):
+def get_generator(run_id, snapshot=None, image_shrink=1, minibatch_size=8):
     network_pkl = misc.locate_network_pkl(run_id, snapshot)
-    if png_prefix is None:
-        png_prefix = misc.get_id_string_for_network_pkl(network_pkl) + '-'
-    random_state = np.random.RandomState(random_seed)
 
     print('Loading network from "%s"...' % network_pkl)
-    with tf.device(myutil.get_available_devices()[0]):
-        G, D, Gs = misc.load_network_pkl(run_id, snapshot)
-        latent = tf.get_variable('latent',shape=(1,512),trainable=True)
-        label = tf.get_variable('label',shape=(1,0),trainable=True,initializer=tf.zeros_initializer)
-        images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=0.5, out_add=0.5, out_shrink=image_shrink, out_dtype=np.float32)
-        sess = tf.get_default_session()
+    G, D, Gs = misc.load_network_pkl(run_id, snapshot)
+    latent = tf.get_variable('latent',shape=(1,512),trainable=True)
+    label = tf.get_variable('label',shape=(1,0),trainable=True,initializer=tf.zeros_initializer)
+    images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=0.5, out_add=0.5, out_shrink=image_shrink, out_dtype=np.float32)
+    sess = tf.get_default_session()
 
     sess.run(tf.variables_initializer([latent, label]))
 

@@ -23,6 +23,8 @@ class LegacyUnpickler(pickle.Unpickler):
     def find_class(self, module, name):
         if module == 'network' and name == 'Network':
             return tfutil.Network
+        if any([module ==s for s in ["config", "dataset", "dataset_tool","legacy","loss","misc","myutil","networks","tfutil","util_scripts","train"]]):
+            module = 'texturegan.'+module
         return super().find_class(module, name)
 
 #----------------------------------------------------------------------------
