@@ -13,6 +13,7 @@ import imp
 import numpy as np
 from collections import OrderedDict
 import tensorflow as tf
+from . import myutil
 
 #----------------------------------------------------------------------------
 # Convenience.

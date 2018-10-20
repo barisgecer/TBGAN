@@ -8,7 +8,7 @@
 import numpy as np
 import tensorflow as tf
 
-import tfutil
+from . import tfutil
 
 #----------------------------------------------------------------------------
 # Convenience func that casts all of its arguments to tf.float32.

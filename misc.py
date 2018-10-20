@@ -16,9 +16,9 @@ from collections import OrderedDict
 import scipy.ndimage
 import PIL.Image
 
-import config
-import dataset
-import legacy
+from . import config
+from . import dataset
+from . import legacy
 
 #----------------------------------------------------------------------------
 # Convenience wrappers for pickle that are able to load data produced by

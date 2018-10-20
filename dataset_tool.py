@@ -17,7 +17,8 @@ import tensorflow as tf
 import PIL.Image
 
 import tfutil
-import dataset
+from . import tfutil
+from . import dataset
 import menpo.io as mio
 import cv2
 

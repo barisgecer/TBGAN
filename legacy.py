@@ -9,8 +9,8 @@ import pickle
 import inspect
 import numpy as np
 
-import tfutil
-import networks
+from . import tfutil
+from . import networks
 
 #----------------------------------------------------------------------------
 # Custom unpickler that is able to load network pickles produced by
