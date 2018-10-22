@@ -24,7 +24,7 @@ class LegacyUnpickler(pickle.Unpickler):
         if module == 'network' and name == 'Network':
             return tfutil.Network
         if any([module ==s for s in ["config", "dataset", "dataset_tool","legacy","loss","misc","myutil","networks","tfutil","util_scripts","train"]]):
-            module = 'texturegan.'+module
+            module = 'uv_gan.'+module
         return super().find_class(module, name)
 
 #----------------------------------------------------------------------------
