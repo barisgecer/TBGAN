@@ -16,15 +16,15 @@ import scipy.ndimage
 import scipy.misc
 from scipy.spatial.distance import cdist
 
-from . import config
-from . import misc
-from . import tfutil
-from . import train
-from . import dataset
+from uv_gan import config
+from uv_gan import misc
+from uv_gan import tfutil
+from uv_gan import train
+from uv_gan import dataset
 import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib import pyplot as pt
-from . import myutil
+from uv_gan import myutil
 import menpo.io as mio
 
 #----------------------------------------------------------------------------
