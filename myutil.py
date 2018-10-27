@@ -4,6 +4,7 @@ import PIL.Image
 import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib import pyplot as pt
+from menpo.image import Image
 
 def crop_im(img):
     img = img.crop((41, 0, img.size[0] - 42, 377))
@@ -11,6 +12,33 @@ def crop_im(img):
     new_img.paste(img, ((512 - img.size[0]) // 2, (512 - img.size[1]) // 2))
     return new_img
 
+def crop_im_512(img_377):
+    img = img_377
+    if isinstance(img_377, Image):
+        img = img_377.pixels_with_channels_at_back()
+    if img.shape[0]==3:
+        np.transpose(img, [1, 2, 0])
+
+    img = img[:, 41:img.shape[1] - 42, :]
+    img = np.pad(img, ((67, 68),(0, 0) , (0, 0)), 'constant')
+    img = np.clip(img,0,1)
+    if isinstance(img_377, Image):
+        img = Image(np.transpose(img,[2,0,1]))
+    return img
+
+def crop_im_377(img_512):
+    img = img_512
+    if isinstance(img_512, Image):
+        img = img_512.pixels_with_channels_at_back()
+    if img.shape[0]==3:
+        img = np.transpose(img, [1, 2, 0])
+
+    img = img[67:img.shape[1] - 68, :, :]
+    img = np.pad(img, ((0, 0),(41, 42) , (0, 0)), 'constant')
+    img = np.clip(img,0,1)
+    if isinstance(img_512, Image):
+        img = Image(np.transpose(img,[2,0,1]))
+    return img
 
 def concat_image(im1, im2):
     if type(im1) is not PIL.Image.Image:
