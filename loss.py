@@ -5,10 +5,9 @@
 # http://creativecommons.org/licenses/by-nc/4.0/ or send a letter to
 # Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
-import numpy as np
 import tensorflow as tf
 
-from . import tfutil
+from uv_gan import tfutil
 
 #----------------------------------------------------------------------------
 # Convenience func that casts all of its arguments to tf.float32.

@@ -9,7 +9,6 @@ import os
 import time
 import re
 import bisect
-from collections import OrderedDict
 import numpy as np
 import tensorflow as tf
 import scipy.ndimage
@@ -19,11 +18,6 @@ from scipy.spatial.distance import cdist
 from uv_gan import config
 from uv_gan import misc
 from uv_gan import tfutil
-from uv_gan import train
-from uv_gan import dataset
-import matplotlib
-matplotlib.use('Qt4Agg')
-from matplotlib import pyplot as pt
 from uv_gan import myutil
 import menpo.io as mio
 

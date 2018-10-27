@@ -9,7 +9,6 @@
 # Convenience class that behaves exactly like dict(), but allows accessing
 # the keys and values using the attribute syntax, i.e., "mydict.key = value".
 
-import time
 
 class EasyDict(dict):
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)

@@ -1,9 +1,6 @@
 import numpy as np
 import os
 import PIL.Image
-import matplotlib
-matplotlib.use('Qt4Agg')
-from matplotlib import pyplot as pt
 from menpo.image import Image
 
 def crop_im(img):
