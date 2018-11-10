@@ -33,6 +33,8 @@ def crop_im_377(img_512):
     img = img[67:img.shape[1] - 68, :, :]
     img = np.pad(img, ((0, 0),(41, 42) , (0, 0)), 'constant')
     img = np.clip(img,0,1)
+    img[:, 0:42, :] = np.transpose(np.tile(img[:, 42, :], [42, 1, 1]), [1, 0, 2])
+    img[:, 552:, :] = np.transpose(np.tile(img[:, 552, :], [43, 1, 1]), [1, 0, 2])
     if isinstance(img_512, Image):
         img = Image(np.transpose(img,[2,0,1]))
     return img
