@@ -19,6 +19,7 @@ import PIL.Image
 from uv_gan import tfutil
 from uv_gan import dataset
 import menpo.io as mio
+import scipy
 
 #----------------------------------------------------------------------------
 
@@ -684,7 +685,7 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
     if len(image_filenames) == 0:
         error('No input images found')
 
-    good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
+    # good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
 
     img = mio.import_pickle(image_filenames[0])
     resolution = img.shape[2]
@@ -700,6 +701,10 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
         order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
         for idx in range(order.size):
             img = mio.import_pickle(image_filenames[order[idx]]).astype(np.float32)
+
+            # img[0, :, :] = scipy.ndimage.gaussian_filter(img[0, :, :], 2)
+            # img[1, :, :] = scipy.ndimage.gaussian_filter(img[1, :, :], 2)
+            # img[2, :, :] = scipy.ndimage.gaussian_filter(img[2, :, :], 2)
             # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
             tfr.add_shape(img)
 
@@ -713,7 +718,7 @@ def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
     if len(image_filenames) == 0:
         error('No input images found')
 
-    good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
+    # good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
 
     img = mio.import_pickle(pickle_filenames[0])
     resolution = img.shape[2]
@@ -730,6 +735,9 @@ def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
         for idx in range(order.size):
             img = mio.import_image(image_filenames[order[idx]]).pixels.astype(np.float32)*2-1
             pkl = mio.import_pickle(pickle_filenames[order[idx]]).astype(np.float32)
+            # pkl[0, :, :] = scipy.ndimage.gaussian_filter(pkl[0, :, :], 2)
+            # pkl[1, :, :] = scipy.ndimage.gaussian_filter(pkl[1, :, :], 2)
+            # pkl[2, :, :] = scipy.ndimage.gaussian_filter(pkl[2, :, :], 2)
                 # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
             tfr.add_both(np.concatenate([img,pkl]))
 

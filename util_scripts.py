@@ -118,8 +118,13 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, nu
         labels = np.zeros([latents.shape[0], 0], np.float32)
         images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_shrink=image_shrink)
         for i in range(batch_size):
-            mio.export_pickle(images[i],os.path.join(result_subdir, '%s%06d.pkl' % (png_prefix, png_idx*batch_size+i)))
-            # misc.save_image(images[i], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [0,255], grid_size)
+            if images.shape[1]==3:
+                mio.export_pickle(images[i],os.path.join(result_subdir, '%s%06d.pkl' % (png_prefix, png_idx*batch_size+i)))
+                # misc.save_image(images[i], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [0,255], grid_size)
+            elif images.shape[1]==6:
+                mio.export_pickle(images[i][3:6],
+                                  os.path.join(result_subdir, '%s%06d.pkl' % (png_prefix, png_idx * batch_size + i)),overwrite=True)
+                misc.save_image(images[i][0:3], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [-1,1], grid_size)
         print('%0.2f seconds' % (time.time() - start))
 
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
