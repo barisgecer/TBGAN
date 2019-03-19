@@ -116,7 +116,7 @@ class TFRecordExporter:
         if self.shape is None:
             self.shape = img.shape
             self.resolution_log2 = int(np.log2(self.shape[1]))
-            assert self.shape[0] in [1, 6]
+            assert self.shape[0] in [1, 6, 9]
             assert self.shape[1] == self.shape[2]
             assert self.shape[1] == 2**self.resolution_log2
             tfr_opt = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.NONE)
@@ -743,6 +743,41 @@ def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
 
 #----------------------------------------------------------------------------
 
+def create_from_pkl_img_norm(tfrecord_dir, image_dir, pickle_dir, normal_dir, shuffle):
+    print('Loading images from "%s"' % image_dir)
+
+    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
+    pickle_filenames = sorted(glob.glob(os.path.join(pickle_dir, '*')))
+    normal_filenames = sorted(glob.glob(os.path.join(normal_dir, '*')))
+    if len(image_filenames) == 0:
+        error('No input images found')
+
+    # good_ids =  mio.import_pickle('/vol/construct3dmm/visualizations/nicp/mein3d/good_ids.pkl')
+
+    img = mio.import_pickle(pickle_filenames[0])
+    resolution = img.shape[2]
+    channels = img.shape[0] if img.ndim == 3 else 1
+    if img.shape[1] != resolution:
+        error('Input images must have the same width and height')
+    if resolution != 2 ** int(np.floor(np.log2(resolution))):
+        error('Input image resolution must be a power-of-two')
+    if channels not in [1, 3]:
+        error('Input images must be stored as RGB or grayscale')
+
+    with TFRecordExporter(tfrecord_dir, len(image_filenames)) as tfr:
+        order = tfr.choose_shuffled_order() if shuffle else np.arange(len(image_filenames))
+        for idx in range(order.size):
+            img = mio.import_image(image_filenames[order[idx]]).pixels.astype(np.float32)*2-1
+            pkl = mio.import_pickle(pickle_filenames[order[idx]]).astype(np.float32)
+            normal = mio.import_pickle(normal_filenames[order[idx]]).astype(np.float32)
+            # pkl[0, :, :] = scipy.ndimage.gaussian_filter(pkl[0, :, :], 2)
+            # pkl[1, :, :] = scipy.ndimage.gaussian_filter(pkl[1, :, :], 2)
+            # pkl[2, :, :] = scipy.ndimage.gaussian_filter(pkl[2, :, :], 2)
+                # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
+            tfr.add_both(np.concatenate([img,pkl,normal]))
+
+#----------------------------------------------------------------------------
+
 def create_from_hdf5(tfrecord_dir, hdf5_filename, shuffle):
     print('Loading HDF5 archive from "%s"' % hdf5_filename)
     import h5py # conda install h5py
@@ -852,6 +887,14 @@ def execute_cmdline(argv):
     p.add_argument(     'tfrecord_dir',     help='New dataset directory to be created')
     p.add_argument(     'image_dir',        help='Directory containing the images')
     p.add_argument(     'pickle_dir',        help='Directory containing the shape pickles')
+    p.add_argument(     '--shuffle',        help='Randomize image order (default: 1)', type=int, default=1)
+
+    p = add_command(    'create_from_pkl_img_norm', 'Create dataset from a directory full of images.',
+                                            'create_from_pkl_img_norm datasets/mydataset myimagedir myshapedir')
+    p.add_argument(     'tfrecord_dir',     help='New dataset directory to be created')
+    p.add_argument(     'image_dir',        help='Directory containing the images')
+    p.add_argument(     'pickle_dir',        help='Directory containing the shape pickles')
+    p.add_argument(     'normal_dir',        help='Directory containing the normal pickles')
     p.add_argument(     '--shuffle',        help='Randomize image order (default: 1)', type=int, default=1)
 
     p = add_command(    'create_from_hdf5', 'Create dataset from legacy HDF5 archive.',

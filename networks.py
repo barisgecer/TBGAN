@@ -165,7 +165,7 @@ def G_paper(
     
     resolution_log2 = int(np.log2(resolution))
     assert resolution == 2**resolution_log2 and resolution >= 4
-    def nf(stage): return min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max)*(int(stage>=lod_sep)+1)
+    def nf(stage): return 3*int((min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max))) #*(int(stage>=lod_sep)+1)
     def PN(x): return pixel_norm(x, epsilon=pixelnorm_epsilon) if use_pixelnorm else x
     if latent_size is None: latent_size = nf(0)
     if structure is None: structure = 'linear' if is_template_graph else 'recursive'
@@ -198,28 +198,38 @@ def G_paper(
                 with tf.variable_scope('Conv1'):
                     x = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1), kernel=3, use_wscale=use_wscale))))
             else:
-                inputs = tf.split(x, 2, 1)
+                inputs = tf.split(x, 3, 1)
                 with tf.variable_scope('tex'):
                     if fused_scale:
                         with tf.variable_scope('Conv0_up'):
-                            x = PN(act(apply_bias(upscale2d_conv2d(inputs[0], fmaps=int(nf(res-1)/2), kernel=3, use_wscale=use_wscale))))
+                            x = PN(act(apply_bias(upscale2d_conv2d(inputs[0], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale))))
                     else:
-                        x = upscale2d(input)
+                        x = upscale2d(inputs[0])
                         with tf.variable_scope('Conv0'):
-                            x = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/2, kernel=3, use_wscale=use_wscale))))
+                            x = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/3, kernel=3, use_wscale=use_wscale))))
                     with tf.variable_scope('Conv1'):
-                        tex = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/2, kernel=3, use_wscale=use_wscale))))
+                        tex = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/3, kernel=3, use_wscale=use_wscale))))
                 with tf.variable_scope('shp'):
                     if fused_scale:
                         with tf.variable_scope('Conv0_up'):
-                            x = PN(act(apply_bias(upscale2d_conv2d(inputs[1], fmaps=int(nf(res-1)/2), kernel=3, use_wscale=use_wscale))))
+                            x = PN(act(apply_bias(upscale2d_conv2d(inputs[1], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale))))
                     else:
-                        x = upscale2d(input)
+                        x = upscale2d(inputs[1])
                         with tf.variable_scope('Conv0'):
-                            x = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/2, kernel=3, use_wscale=use_wscale))))
+                            x = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/3, kernel=3, use_wscale=use_wscale))))
                     with tf.variable_scope('Conv1'):
-                        shp = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/2, kernel=3, use_wscale=use_wscale))))
-                x = tf.concat([tex,shp],1)
+                        shp = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/3, kernel=3, use_wscale=use_wscale))))
+                with tf.variable_scope('nor'):
+                    if fused_scale:
+                        with tf.variable_scope('Conv0_up'):
+                            x = PN(act(apply_bias(upscale2d_conv2d(inputs[2], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale))))
+                    else:
+                        x = upscale2d(inputs[2])
+                        with tf.variable_scope('Conv0'):
+                            x = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/3, kernel=3, use_wscale=use_wscale))))
+                    with tf.variable_scope('Conv1'):
+                        nor = PN(act(apply_bias(conv2d(x, fmaps=nf(res-1)/3, kernel=3, use_wscale=use_wscale))))
+                x = tf.concat([tex,shp,nor],1)
             return x
     def torgb(x, res): # res = 2..resolution_log2
         lod = resolution_log2 - res
@@ -227,12 +237,14 @@ def G_paper(
             if res <= lod_sep:
                 return apply_bias(conv2d(x, fmaps=num_channels, kernel=1, gain=1, use_wscale=use_wscale))
             else:
-                inputs = tf.split(x, 2, 1)
+                inputs = tf.split(x, 3, 1)
                 with tf.variable_scope('tex'):
-                    tex = apply_bias(conv2d(inputs[0], fmaps=num_channels/2, kernel=1, gain=1, use_wscale=use_wscale))
+                    tex = apply_bias(conv2d(inputs[0], fmaps=num_channels/3, kernel=1, gain=1, use_wscale=use_wscale))
                 with tf.variable_scope('shp'):
-                    shp = apply_bias(conv2d(inputs[1], fmaps=num_channels/2, kernel=1, gain=1, use_wscale=use_wscale))
-                return tf.concat([tex,shp],1)
+                    shp = apply_bias(conv2d(inputs[1], fmaps=num_channels/3, kernel=1, gain=1, use_wscale=use_wscale))
+                with tf.variable_scope('nor'):
+                    nor = apply_bias(conv2d(inputs[2], fmaps=num_channels/3, kernel=1, gain=1, use_wscale=use_wscale))
+                return tf.concat([tex,shp,nor],1)
 
     # Linear structure: simple but inefficient.
     if structure == 'linear':
@@ -283,7 +295,7 @@ def D_paper(
     resolution_log2 = int(np.log2(resolution))
     assert resolution == 2**resolution_log2 and resolution >= 4
     def nf(stage):
-        return min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max)*(int(stage>=lod_sep)+1)
+        return 3*int((min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max))) #*(int(stage>=lod_sep)+1)
     if structure is None: structure = 'linear' if is_template_graph else 'recursive'
     act = leaky_relu
 
@@ -294,42 +306,55 @@ def D_paper(
     # Building blocks.
     def fromrgb(x, res): # res = 2..resolution_log2
         with tf.variable_scope('FromRGB_lod%d' % (resolution_log2 - res)):
-            if res >= lod_sep:
-                inputs = tf.split(x, 2, 1)
+            if res >= lod_sep-1:
+                inputs = tf.split(x, 3, 1)
                 with tf.variable_scope('tex'):
-                    tex = act(apply_bias(conv2d(inputs[0], fmaps=int(nf(res-1)/2), kernel=1, use_wscale=use_wscale)))
+                    tex = act(apply_bias(conv2d(inputs[0], fmaps=int(nf(res-1)/3), kernel=1, use_wscale=use_wscale)))
                 with tf.variable_scope('shp'):
-                    shp = act(apply_bias(conv2d(inputs[1], fmaps=int(nf(res-1)/2), kernel=1, use_wscale=use_wscale)))
-                return tf.concat([tex, shp], 1)
+                    shp = act(apply_bias(conv2d(inputs[1], fmaps=int(nf(res-1)/3), kernel=1, use_wscale=use_wscale)))
+                with tf.variable_scope('nor'):
+                    nor = act(apply_bias(conv2d(inputs[2], fmaps=int(nf(res-1)/3), kernel=1, use_wscale=use_wscale)))
+                return tf.concat([tex, shp,nor], 1)
             else:
                 return act(apply_bias(conv2d(x, fmaps=nf(res-1), kernel=1, use_wscale=use_wscale)))
     def block(x, res): # res = 2..resolution_log2
         with tf.variable_scope('%dx%d' % (2**res, 2**res)):
             if res >= lod_sep:
-                inputs = tf.split(x, 2, 1)
+                inputs = tf.split(x, 3, 1)
                 with tf.variable_scope('tex'):
                     with tf.variable_scope('Conv0'):
-                        x = act(apply_bias(conv2d(inputs[0], fmaps=int(nf(res-1)/2), kernel=3, use_wscale=use_wscale)))
+                        x = act(apply_bias(conv2d(inputs[0], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale)))
                     if fused_scale:
                         with tf.variable_scope('Conv1_down'):
-                            x = act(apply_bias(conv2d_downscale2d(x, fmaps=int(nf(res-2)/2), kernel=3, use_wscale=use_wscale)))
+                            x = act(apply_bias(conv2d_downscale2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
                     else:
                         with tf.variable_scope('Conv1'):
-                            x = act(apply_bias(conv2d(x, fmaps=int(nf(res-2)/2), kernel=3, use_wscale=use_wscale)))
+                            x = act(apply_bias(conv2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
                         x = downscale2d(x)
                     tex = x
                 with tf.variable_scope('shp'):
                     with tf.variable_scope('Conv0'):
-                        x = act(apply_bias(conv2d(inputs[1], fmaps=int(nf(res-1)/2), kernel=3, use_wscale=use_wscale)))
+                        x = act(apply_bias(conv2d(inputs[1], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale)))
                     if fused_scale:
                         with tf.variable_scope('Conv1_down'):
-                            x = act(apply_bias(conv2d_downscale2d(x, fmaps=int(nf(res-2)/2), kernel=3, use_wscale=use_wscale)))
+                            x = act(apply_bias(conv2d_downscale2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
                     else:
                         with tf.variable_scope('Conv1'):
-                            x = act(apply_bias(conv2d(x, fmaps=int(nf(res-2)/2), kernel=3, use_wscale=use_wscale)))
+                            x = act(apply_bias(conv2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
                         x = downscale2d(x)
                     shp =x
-                x = tf.concat([tex,shp],1)
+                with tf.variable_scope('nor'):
+                    with tf.variable_scope('Conv0'):
+                        x = act(apply_bias(conv2d(inputs[1], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale)))
+                    if fused_scale:
+                        with tf.variable_scope('Conv1_down'):
+                            x = act(apply_bias(conv2d_downscale2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
+                    else:
+                        with tf.variable_scope('Conv1'):
+                            x = act(apply_bias(conv2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
+                        x = downscale2d(x)
+                    nor =x
+                x = tf.concat([tex,shp,nor],1)
             elif res >= 3: # 8x8 and up
                 with tf.variable_scope('Conv0'):
                     x = act(apply_bias(conv2d(x, fmaps=nf(res-1), kernel=3, use_wscale=use_wscale)))
