@@ -345,7 +345,7 @@ def D_paper(
                     shp =x
                 with tf.variable_scope('nor'):
                     with tf.variable_scope('Conv0'):
-                        x = act(apply_bias(conv2d(inputs[1], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale)))
+                        x = act(apply_bias(conv2d(inputs[2], fmaps=int(nf(res-1)/3), kernel=3, use_wscale=use_wscale)))
                     if fused_scale:
                         with tf.variable_scope('Conv1_down'):
                             x = act(apply_bias(conv2d_downscale2d(x, fmaps=int(nf(res-2)/3), kernel=3, use_wscale=use_wscale)))
