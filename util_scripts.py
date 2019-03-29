@@ -125,6 +125,12 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, nu
                 mio.export_pickle(images[i][3:6],
                                   os.path.join(result_subdir, '%s%06d.pkl' % (png_prefix, png_idx * batch_size + i)),overwrite=True)
                 misc.save_image(images[i][0:3], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [-1,1], grid_size)
+            elif images.shape[1]==9:
+                mio.export_pickle(images[i][3:6],
+                                  os.path.join(result_subdir, '%s%06d_shp.pkl' % (png_prefix, png_idx * batch_size + i)),overwrite=True)
+                mio.export_pickle(images[i][6:9],
+                                  os.path.join(result_subdir, '%s%06d_nor.pkl' % (png_prefix, png_idx * batch_size + i)),overwrite=True)
+                misc.save_image(images[i][0:3], os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx*batch_size+i)), [-1,1], grid_size)
         print('%0.2f seconds' % (time.time() - start))
 
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
