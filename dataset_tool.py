@@ -743,12 +743,55 @@ def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
 
 #----------------------------------------------------------------------------
 
-def create_from_pkl_img_norm(tfrecord_dir, image_dir, pickle_dir, normal_dir, shuffle):
-    print('Loading images from "%s"' % image_dir)
+def create_from_pkl_img_norm(tfrecord_dir, mein3d_image_dir, mein3d_pickle_dir, mein3d_normal_dir, shuffle):
+    print('Loading images from "%s"' % mein3d_image_dir)
 
-    image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
-    pickle_filenames = sorted(glob.glob(os.path.join(pickle_dir, '*')))
-    normal_filenames = sorted(glob.glob(os.path.join(normal_dir, '*')))
+    _3dmd_image_dir = '/media/data/3dmd_crop/texture/'
+    _3dmd_pickle_dir = '/media/data/3dmd_crop/shape/'
+    _3dmd_normal_dir = '/media/data/3dmd_crop/normals/'
+
+    labels_mein3d = mio.import_pickle('../Prepare_dataset/results_mein3d.pkl')
+    paths_mein3d = mio.import_pickle('../Prepare_dataset/paths_mein3d.pkl')
+    paths_mein3d_tex = [os.path.join(mein3d_image_dir, im + '.png') for im in paths_mein3d]
+
+    actual_paths_mein3d_tex = glob.glob(mein3d_image_dir + '/*.png')
+    actual_paths_mein3d_shp = glob.glob(mein3d_pickle_dir + '/*.pkl')
+    actual_paths_mein3d_nor = glob.glob(mein3d_normal_dir + '/*.pkl')
+    idx =[]
+    for path in actual_paths_mein3d_tex:
+        idx.append(paths_mein3d_tex.index(path))
+    actual_labels_mein3d = labels_mein3d[idx]
+
+    assert len(actual_paths_mein3d_tex) == len(actual_paths_mein3d_shp) == len(actual_paths_mein3d_nor) == len(actual_labels_mein3d)
+
+
+
+    labels_3dmd = mio.import_pickle('../Prepare_dataset/results_3dmd.pkl')
+    paths_3dmd = mio.import_pickle('../Prepare_dataset/paths_3dmd.pkl')
+    paths_3dmd_tex = [os.path.join(_3dmd_image_dir,str.split(im,'.')[0], im + '.png') for im in paths_3dmd]
+
+
+    actual_paths_3dmd_tex = glob.glob(_3dmd_image_dir + '/*/*.*.png')
+    actual_paths_3dmd_shp = glob.glob(_3dmd_pickle_dir + '/*/*.*.pkl')
+    actual_paths_3dmd_nor = glob.glob(_3dmd_normal_dir + '/*/*.*.pkl')
+    idx =[]
+    for path in actual_paths_3dmd_tex:
+        idx.append(paths_3dmd_tex.index(path))
+    actual_labels_3dmd = labels_3dmd[idx]
+
+    assert len(actual_paths_3dmd_tex) == len(actual_paths_3dmd_shp) == len(actual_paths_3dmd_nor) == len(actual_labels_3dmd)
+
+
+    image_filenames = actual_paths_mein3d_tex + actual_paths_3dmd_tex
+    pickle_filenames = actual_paths_mein3d_shp + actual_paths_3dmd_shp
+    normal_filenames = actual_paths_mein3d_nor + actual_paths_3dmd_nor
+    # image_filenames = paths_mein3d[0:100]
+    if len(image_filenames) == 0:
+        error('No input images found')
+    labels = np.append(actual_labels_mein3d,actual_labels_3dmd,0)
+    # labels = labels[0:100]
+
+
     if len(image_filenames) == 0:
         error('No input images found')
 
@@ -775,6 +818,7 @@ def create_from_pkl_img_norm(tfrecord_dir, image_dir, pickle_dir, normal_dir, sh
             # pkl[2, :, :] = scipy.ndimage.gaussian_filter(pkl[2, :, :], 2)
                 # img_resized = np.stack((cv2.resize(img[0],dsize=(256,256)),cv2.resize(img[1],dsize=(256,256)),cv2.resize(img[2],dsize=(256,256))))
             tfr.add_both(np.concatenate([img,pkl,normal]))
+        tfr.add_labels(labels[order,:])
 
 #----------------------------------------------------------------------------
 
