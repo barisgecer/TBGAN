@@ -26,6 +26,7 @@ def G_wgan_acgan(G, D, opt, training_set, minibatch_size,
 
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
+    labels = tf.nn.softmax(labels)
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     fake_scores_out, fake_labels_out = fp32(D.get_output_for(fake_images_out, is_training=True))
     loss = -fake_scores_out
@@ -45,6 +46,7 @@ def D_wgangp_acgan(G, D, opt, training_set, minibatch_size, reals, labels,
     wgan_target     = 1.0,      # Target value for gradient magnitudes.
     cond_weight     = 1.0):     # Weight of the conditioning terms.
 
+    labels = tf.nn.softmax(labels)
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)
     real_scores_out, real_labels_out = fp32(D.get_output_for(reals, is_training=True))

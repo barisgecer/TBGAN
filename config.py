@@ -52,9 +52,12 @@ grid        = EasyDict(size='1080p', layout='random')       # Options for train.
 
 # desc += '-mein3d_texture_uv_tf_512';            dataset = EasyDict(tfrecord_dir='mein3d_texture_uv_tf_512');
 # desc += '-mein3d_shape_uv_tf_512_bary';            dataset = EasyDict(tfrecord_dir='mein3d_shape_uv_tf_512_bary',dynamic_range=[-1,1],dtype = 'float32');
-desc += '-mein3d_all_newuv';            dataset = EasyDict(tfrecord_dir='mein3d_all_newuv',dynamic_range=[-1,1],dtype = 'float32');
+desc += '-mein3d_3dmd_all_newuv_crop_tf';            dataset = EasyDict(tfrecord_dir='mein3d_3dmd_all_newuv_crop_tf',dynamic_range=[-1,1],dtype = 'float32');
 G.lod_sep = 7
 D.lod_sep = 7
+dataset.max_label_size = 'full'
+grid.layout = 'row_per_class'
+grid.size = '4k'
 
 # Continue
 # train.resume_run_id = 8
