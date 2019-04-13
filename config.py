@@ -104,6 +104,7 @@ desc += '-VERBOSE'; sched.tick_kimg_base = 100; sched.tick_kimg_dict = {}; train
 #train = EasyDict(func='util_scripts.generate_fake_images', run_id=0, png_prefix='', num_pngs=100000); num_gpus = 1; desc = 'fake-images-' + str(train.run_id)
 #train = EasyDict(func='util_scripts.generate_fake_images', run_id=23, grid_size=[15,8], num_pngs=10, image_shrink=4); num_gpus = 1; desc = 'fake-grids-' + str(train.run_id)
 #train = EasyDict(func='util_scripts.generate_interpolation_video', run_id=0, grid_size=[1,1], duration_sec=600.0, smoothing_sec=1.0); num_gpus = 1; desc = 'interpolation-video-' + str(train.run_id)
+# train = EasyDict(func='util_scripts.generate_interpolation_images', run_id=22, grid_size=[1,1], duration_sec=60.0, smoothing_sec=1.0); num_gpus = 1; desc = 'interpolation-images-' + str(train.run_id)
 #train = EasyDict(func='util_scripts.generate_interpolation_video_bydim', run_id=0, grid_size=[1,1], duration_sec=10.0, mp4_fps=30, smoothing_sec=1.0,dim=3); num_gpus = 1; desc = 'interpolation-video-' + str(train.run_id) + '_dim'+str(train.dim)
 #train = EasyDict(func='util_scripts.generate_training_video', run_id=0, duration_sec=20.0); num_gpus = 1; desc = 'training-video-' + str(train.run_id)
 
