@@ -14,12 +14,19 @@ import tensorflow as tf
 import scipy.ndimage
 import scipy.misc
 from scipy.spatial.distance import cdist
+from sklearn.utils.extmath import softmax
+import scipy.ndimage as ndimage
 
 from uv_gan import config
 from uv_gan import misc
 from uv_gan import tfutil
 from uv_gan import myutil
 import menpo.io as mio
+
+import menpo3d.io as m3io
+from menpo.shape import TexturedTriMesh, TriMesh, ColouredTriMesh
+from UV_spaces_V2.UV_manipulation_2 import from_UV_2_3D, from_3D_2_UV, UV_tex_2_UV
+from menpo.image import Image
 
 #----------------------------------------------------------------------------
 # Generate random images or image grids using a previously trained network.
@@ -172,6 +179,60 @@ def generate_interpolation_video(run_id, snapshot=None, grid_size=[1,1], image_s
     import moviepy.editor # pip install moviepy
     result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
     moviepy.editor.VideoClip(make_frame, duration=duration_sec).write_videofile(os.path.join(result_subdir, mp4), fps=mp4_fps, codec='libx264', bitrate=mp4_bitrate)
+    open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
+
+#----------------------------------------------------------------------------
+# Generate MP4 video of random interpolations using a previously trained network.
+# To run, uncomment the appropriate line in config.py and launch train.py.
+
+def generate_interpolation_images(run_id, snapshot=None, grid_size=[1,1], image_shrink=1, image_zoom=1, duration_sec=60.0, smoothing_sec=1.0, mp4=None, mp4_fps=30, mp4_codec='libx265', mp4_bitrate='16M', random_seed=1000, minibatch_size=8):
+
+    network_pkl = misc.locate_network_pkl(run_id, snapshot)
+    if mp4 is None:
+        mp4 = misc.get_id_string_for_network_pkl(network_pkl) + '-lerp.mp4'
+    num_frames = int(np.rint(duration_sec * mp4_fps))
+    random_state = np.random.RandomState(random_seed)
+
+    print('Loading network from "%s"...' % network_pkl)
+    G, D, Gs = misc.load_network_pkl(run_id, snapshot)
+
+    print('Generating latent vectors...')
+    shape = [num_frames, np.prod(grid_size)] + [Gs.input_shape[1:][0]+Gs.input_shapes[1][1:][0]] # [frame, image, channel, component]
+    all_latents = random_state.randn(*shape).astype(np.float32)
+    all_latents = scipy.ndimage.gaussian_filter(all_latents, [smoothing_sec * mp4_fps] + [0] * len(Gs.input_shape), mode='wrap')
+    all_latents /= np.sqrt(np.mean(np.square(all_latents)))
+
+    #10 10 10 10 5 3 10
+    # model = mio.import_pickle('../models/lsfm_shape_model_fw.pkl')
+    # facesoft_model = mio.import_pickle('../models/facesoft_id_and_exp_3d_face_model.pkl')['shape_model']
+    # lsfm_model = m3io.import_lsfm_model('/home/baris/Projects/faceganhd/models/all_all_all.mat')
+    # model_mean = lsfm_model.mean().copy()
+    # mask = mio.import_pickle('../UV_spaces_V2/mask_full_2_crop.pkl')
+    lsfm_tcoords = \
+    mio.import_pickle('../UV_spaces_V2/UV_dicts/crop_face/strech/512_UV_dict.pkl')['tcoords']
+    lsfm_params = []
+    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    for png_idx in range(int(num_frames/minibatch_size)):
+        start = time.time()
+        print('Generating png %d-%d / %d... in ' % (png_idx*minibatch_size,(png_idx+1)*minibatch_size, num_frames),end='')
+        latents = all_latents[png_idx*minibatch_size:(png_idx+1)*minibatch_size,0,:Gs.input_shape[1:][0]]
+        labels = all_latents[png_idx*minibatch_size:(png_idx+1)*minibatch_size,0,Gs.input_shape[1:][0]:]
+        labels_softmax = softmax(labels) *np.array([10,10,10,10,5,3,10])
+        images = Gs.run(latents, labels_softmax, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_shrink=image_shrink)
+        for i in range(minibatch_size):
+            texture = Image(np.clip(images[i,0:3]/2+0.5,0,1))
+            img_shape = ndimage.gaussian_filter(images[i,3:6], sigma=(0, 3, 3), order=0)
+            mesh_raw = from_UV_2_3D(Image(img_shape),topology='crop',uv_layout='stretch')
+            # model_mean.points[mask,:] = mesh_raw.points
+            normals = images[i,6:9]
+            normals_norm = (normals - normals.min()) / (normals.max() - normals.min())
+            mesh = mesh_raw#facesoft_model.reconstruct(model_mean).from_mask(mask)
+            # lsfm_params.append(lsfm_model.project(mesh_raw))
+            t_mesh = TexturedTriMesh(mesh.points, lsfm_tcoords.points, texture, mesh.trilist)
+            m3io.export_textured_mesh(t_mesh, os.path.join(result_subdir, '%06d.obj' % (png_idx * minibatch_size + i)),texture_extension='.png')
+            mio.export_image(Image(normals_norm), os.path.join(result_subdir, '%06d_nor.png' % (png_idx * minibatch_size + i)))
+        print('%0.2f seconds' % (time.time() - start))
+    mio.export_pickle(lsfm_params,os.path.join(result_subdir, 'lsfm_params.pkl'))
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
 
 def generate_interpolation_video_bydim(run_id, snapshot=None, grid_size=[1,1], image_shrink=1, image_zoom=1, duration_sec=60.0, smoothing_sec=1.0, mp4=None, mp4_fps=30, mp4_codec='libx265', mp4_bitrate='16M', random_seed=1000, minibatch_size=8, dim=0):
