@@ -148,6 +148,11 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, nu
                                           texture_extension='.png')
                 mio.export_image(Image(normals_norm),
                                  os.path.join(result_subdir, '%06d_nor.png' % (png_idx * minibatch_size + i)))
+                shape = images[i, 3:6]
+                shape_norm = (shape - shape.min()) / (shape.max() - shape.min())
+                mio.export_image(Image(shape_norm),
+                                 os.path.join(result_subdir, '%06d_shp.png' % (png_idx * minibatch_size + i)))
+                mio.export_pickle(t_mesh,os.path.join(result_subdir, '%06d.pkl'% (png_idx * minibatch_size + i)))
 
         print('%0.2f seconds' % (time.time() - start))
 
