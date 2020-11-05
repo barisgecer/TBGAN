@@ -18,9 +18,23 @@ from uv_gan import networks
 
 class LegacyUnpickler(pickle.Unpickler):
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the init.
+
+        Args:
+            self: (todo): write your description
+        """
         super().__init__(*args, **kwargs)
 
     def find_class(self, module, name):
+        """
+        Returns the class of the given module.
+
+        Args:
+            self: (todo): write your description
+            module: (todo): write your description
+            name: (str): write your description
+        """
         if module == 'network' and name == 'Network':
             return tfutil.Network
         if any([module ==s for s in ["config", "dataset", "dataset_tool","legacy","loss","misc","myutil","networks","tfutil","util_scripts","train"]]):
@@ -38,6 +52,12 @@ theano_gan_remap = {
     'D_progressive_8':  'D_paper'}
 
 def patch_theano_gan(state):
+    """
+    Calculate_gan.
+
+    Args:
+        state: (todo): write your description
+    """
     if 'version' in state or state['build_func_spec']['func'] not in theano_gan_remap:
         return state
 
@@ -61,9 +81,37 @@ def patch_theano_gan(state):
     vars = []
     param_iter = iter(state['param_values'])
     relu = np.sqrt(2); linear = 1.0
+    """
+    Flatten a 2d array.
+
+    Args:
+        w: (array): write your description
+    """
     def flatten2(w): return w.reshape(w.shape[0], -1)
+    """
+    Return the standard deviation.
+
+    Args:
+        gain: (todo): write your description
+        w: (todo): write your description
+    """
     def he_std(gain, w): return gain / np.sqrt(np.prod(w.shape[:-1]))
+    """
+    Scale the output of a given gain.
+
+    Args:
+        gain: (todo): write your description
+        w: (todo): write your description
+    """
     def wscale(gain, w): return w * next(param_iter) / he_std(gain, w) if use_wscale else w
+    """
+    Get the layer.
+
+    Args:
+        name: (str): write your description
+        gain: (todo): write your description
+        w: (todo): write your description
+    """
     def layer(name, gain, w): return [(name + '/weight', wscale(gain, w)), (name + '/bias', next(param_iter))]
     
     if func.startswith('G'):
@@ -102,6 +150,12 @@ tfutil.network_import_handlers.append(patch_theano_gan)
 # networks produced by older versions of the code.
 
 def ignore_unknown_theano_network(state):
+    """
+    Return the state.
+
+    Args:
+        state: (todo): write your description
+    """
     if 'version' in state:
         return state
 

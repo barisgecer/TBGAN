@@ -11,6 +11,14 @@ import scipy.ndimage
 #----------------------------------------------------------------------------
 
 def get_descriptors_for_minibatch(minibatch, nhood_size, nhoods_per_image):
+    """
+    Generate minibatch image containing minibatch image.
+
+    Args:
+        minibatch: (todo): write your description
+        nhood_size: (int): write your description
+        nhoods_per_image: (todo): write your description
+    """
     S = minibatch.shape # (minibatch, channel, height, width)
     assert len(S) == 4 and S[1] == 3
     N = nhoods_per_image * S[0]
@@ -25,6 +33,12 @@ def get_descriptors_for_minibatch(minibatch, nhood_size, nhoods_per_image):
 #----------------------------------------------------------------------------
 
 def finalize_descriptors(desc):
+    """
+    Finalize the ndarray
+
+    Args:
+        desc: (array): write your description
+    """
     if isinstance(desc, list):
         desc = np.concatenate(desc, axis=0)
     assert desc.ndim == 4 # (neighborhood, channel, height, width)
@@ -36,6 +50,15 @@ def finalize_descriptors(desc):
 #----------------------------------------------------------------------------
 
 def sliced_wasserstein(A, B, dir_repeats, dirs_per_repeat):
+    """
+    Slices the cosine mean of a.
+
+    Args:
+        A: (todo): write your description
+        B: (todo): write your description
+        dir_repeats: (str): write your description
+        dirs_per_repeat: (str): write your description
+    """
     assert A.ndim == 2 and A.shape == B.shape                           # (neighborhood, descriptor_component)
     results = []
     for repeat in range(dir_repeats):
@@ -53,6 +76,13 @@ def sliced_wasserstein(A, B, dir_repeats, dirs_per_repeat):
 #----------------------------------------------------------------------------
 
 def downscale_minibatch(minibatch, lod):
+    """
+    Return the minimum scale of a minimum scale.
+
+    Args:
+        minibatch: (array): write your description
+        lod: (todo): write your description
+    """
     if lod == 0:
         return minibatch
     t = minibatch.astype(np.float32)
@@ -70,10 +100,22 @@ gaussian_filter = np.float32([
     [1, 4,  6,  4,  1]]) / 256.0
 
 def pyr_down(minibatch): # matches cv2.pyrDown()
+    """
+    Pyr down an image.
+
+    Args:
+        minibatch: (float): write your description
+    """
     assert minibatch.ndim == 4
     return scipy.ndimage.convolve(minibatch, gaussian_filter[np.newaxis, np.newaxis, :, :], mode='mirror')[:, :, ::2, ::2]
 
 def pyr_up(minibatch): # matches cv2.pyrUp()
+    """
+    Updates a 2dimage.
+
+    Args:
+        minibatch: (float): write your description
+    """
     assert minibatch.ndim == 4
     S = minibatch.shape
     res = np.zeros((S[0], S[1], S[2] * 2, S[3] * 2), minibatch.dtype)
@@ -81,6 +123,13 @@ def pyr_up(minibatch): # matches cv2.pyrUp()
     return scipy.ndimage.convolve(res, gaussian_filter[np.newaxis, np.newaxis, :, :] * 4.0, mode='mirror')
 
 def generate_laplacian_pyramid(minibatch, num_levels):
+    """
+    Generate a pyramid.
+
+    Args:
+        minibatch: (float): write your description
+        num_levels: (int): write your description
+    """
     pyramid = [np.float32(minibatch)]
     for i in range(1, num_levels):
         pyramid.append(pyr_down(pyramid[-1]))
@@ -88,6 +137,12 @@ def generate_laplacian_pyramid(minibatch, num_levels):
     return pyramid
 
 def reconstruct_laplacian_pyramid(pyramid):
+    """
+    Reconstruct a minimum minimum minimum minimum minimum minimum number of a minimum minimum minimum minimum minimum minimum minimum minimum minimum minimum number.
+
+    Args:
+        pyramid: (int): write your description
+    """
     minibatch = pyramid[-1]
     for level in pyramid[-2::-1]:
         minibatch = pyr_up(minibatch) + level
@@ -97,6 +152,16 @@ def reconstruct_laplacian_pyramid(pyramid):
 
 class API:
     def __init__(self, num_images, image_shape, image_dtype, minibatch_size):
+        """
+        Initialize images.
+
+        Args:
+            self: (todo): write your description
+            num_images: (int): write your description
+            image_shape: (str): write your description
+            image_dtype: (str): write your description
+            minibatch_size: (int): write your description
+        """
         self.nhood_size         = 7
         self.nhoods_per_image   = 128
         self.dir_repeats        = 4
@@ -108,21 +173,55 @@ class API:
             res //= 2
 
     def get_metric_names(self):
+        """
+        Return a list of metric names.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['SWDx1e3_%d' % res for res in self.resolutions] + ['SWDx1e3_avg']
 
     def get_metric_formatting(self):
+        """
+        Return the metric metric metric format.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['%-13.4f'] * len(self.get_metric_names())
 
     def begin(self, mode):
+        """
+        Initialize the mode.
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+        """
         assert mode in ['warmup', 'reals', 'fakes']
         self.descriptors = [[] for res in self.resolutions]
 
     def feed(self, mode, minibatch):
+        """
+        Generate a feed.
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+            minibatch: (float): write your description
+        """
         for lod, level in enumerate(generate_laplacian_pyramid(minibatch, len(self.resolutions))):
             desc = get_descriptors_for_minibatch(level, self.nhood_size, self.nhoods_per_image)
             self.descriptors[lod].append(desc)
 
     def end(self, mode):
+        """
+        Calculate the mean of the descriptor.
+
+        Args:
+            self: (todo): write your description
+            mode: (str): write your description
+        """
         desc = [finalize_descriptors(d) for d in self.descriptors]
         del self.descriptors
         if mode in ['warmup', 'reals']:

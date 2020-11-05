@@ -108,6 +108,12 @@ def _SSIMForMultiScale(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5
     return ssim, cs
 
 def _HoxDownsample(img):
+    """
+    Generate pixels in pixels
+
+    Args:
+        img: (todo): write your description
+    """
     return (img[:, 0::2, 0::2, :] + img[:, 1::2, 0::2, :] + img[:, 0::2, 1::2, :] + img[:, 1::2, 1::2, :]) * 0.25
 
 def msssim(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5, k1=0.01, k2=0.03, weights=None):
@@ -175,25 +181,69 @@ def msssim(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5, k1=0.01, k
 
 class API:
     def __init__(self, num_images, image_shape, image_dtype, minibatch_size):
+        """
+        Initialize the image.
+
+        Args:
+            self: (todo): write your description
+            num_images: (int): write your description
+            image_shape: (str): write your description
+            image_dtype: (str): write your description
+            minibatch_size: (int): write your description
+        """
         assert num_images % 2 == 0 and minibatch_size % 2 == 0
         self.num_pairs = num_images // 2
 
     def get_metric_names(self):
+        """
+        Returns a list of metric names.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['MS-SSIM']
 
     def get_metric_formatting(self):
+        """
+        Get metric metric metric metric format.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['%-10.4f']
 
     def begin(self, mode):
+        """
+        Begin a new mode.
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+        """
         assert mode in ['warmup', 'reals', 'fakes']
         self.sum = 0.0
 
     def feed(self, mode, minibatch):
+        """
+        Feed the image
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+            minibatch: (float): write your description
+        """
         images = minibatch.transpose(0, 2, 3, 1)
         score = msssim(images[0::2], images[1::2])
         self.sum += score * (images.shape[0] // 2)
 
     def end(self, mode):
+        """
+        Return the end of the mode.
+
+        Args:
+            self: (todo): write your description
+            mode: (str): write your description
+        """
         avg = self.sum / self.num_pairs
         return [avg]
 

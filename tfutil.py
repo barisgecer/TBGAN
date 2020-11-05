@@ -16,41 +16,105 @@ import tensorflow as tf
 # Convenience.
 
 def run(*args, **kwargs): # Run the specified ops in the default session.
+    """
+    Run a tensorflow session.
+
+    Args:
+    """
     return tf.get_default_session().run(*args, **kwargs)
 
 def is_tf_expression(x):
+    """
+    Returns true if x is a tf.
+
+    Args:
+        x: (todo): write your description
+    """
     return isinstance(x, tf.Tensor) or isinstance(x, tf.Variable) or isinstance(x, tf.Operation)
 
 def shape_to_list(shape):
+    """
+    Convert a list of a list of dimensions.
+
+    Args:
+        shape: (int): write your description
+    """
     return [dim.value for dim in shape]
 
 def flatten(x):
+    """
+    Flatten a tensor.
+
+    Args:
+        x: (todo): write your description
+    """
     with tf.name_scope('Flatten'):
         return tf.reshape(x, [-1])
 
 def log2(x):
+    """
+    R log - likelihood.
+
+    Args:
+        x: (todo): write your description
+    """
     with tf.name_scope('Log2'):
         return tf.log(x) * np.float32(1.0 / np.log(2.0))
 
 def exp2(x):
+    """
+    Returns a tensorfluent.
+
+    Args:
+        x: (int): write your description
+    """
     with tf.name_scope('Exp2'):
         return tf.exp(x * np.float32(np.log(2.0)))
 
 def lerp(a, b, t):
+    """
+    Computes the t.
+
+    Args:
+        a: (todo): write your description
+        b: (todo): write your description
+        t: (todo): write your description
+    """
     with tf.name_scope('Lerp'):
         return a + (b - a) * t
 
 def lerp_clip(a, b, t):
+    """
+    Clips tensor.
+
+    Args:
+        a: (todo): write your description
+        b: (todo): write your description
+        t: (todo): write your description
+    """
     with tf.name_scope('LerpClip'):
         return a + (b - a) * tf.clip_by_value(t, 0.0, 1.0)
 
 def absolute_name_scope(scope): # Forcefully enter the specified name scope, ignoring any surrounding scopes.
+    """
+    Returns the absolute scope.
+
+    Args:
+        scope: (str): write your description
+    """
     return tf.name_scope(scope + '/')
 
 #----------------------------------------------------------------------------
 # Initialize TensorFlow graph and session using good default settings.
 
 def init_tf(config_dict=dict()):
+    """
+    Initialize a random session.
+
+    Args:
+        config_dict: (dict): write your description
+        dict: (todo): write your description
+    """
     if tf.get_default_session() is None:
         tf.set_random_seed(np.random.randint(1 << 31))
         create_session(config_dict, force_as_default=True)
@@ -60,6 +124,14 @@ def init_tf(config_dict=dict()):
 # {'gpu_options.allow_growth': True}
 
 def create_session(config_dict=dict(), force_as_default=False):
+    """
+    Create a session object.
+
+    Args:
+        config_dict: (dict): write your description
+        dict: (todo): write your description
+        force_as_default: (str): write your description
+    """
     config = tf.ConfigProto()
     for key, value in config_dict.items():
         fields = key.split('.')
@@ -80,6 +152,12 @@ def create_session(config_dict=dict(), force_as_default=False):
 #   tf.variables_initializer(tf.report_unitialized_variables()).run()
 
 def init_uninited_vars(vars=None):
+    """
+    Initialize the variables.
+
+    Args:
+        vars: (list): write your description
+    """
     if vars is None: vars = tf.global_variables()
     test_vars = []; test_ops = []
     with tf.control_dependencies(None): # ignore surrounding control_dependencies
@@ -101,6 +179,12 @@ def init_uninited_vars(vars=None):
 #   tfutil.run([tf.assign(var, value) for var, value in var_to_value_dict.items()]
 
 def set_vars(var_to_value_dict):
+    """
+    Set variables to variables.
+
+    Args:
+        var_to_value_dict: (dict): write your description
+    """
     ops = []
     feed_dict = {}
     for var, value in var_to_value_dict.items():
@@ -135,6 +219,13 @@ _autosummary_immediate = OrderedDict() # name => update_op, update_value
 _autosummary_finalized = False
 
 def autosummary(name, value):
+    """
+    Autosummary autosummary.
+
+    Args:
+        name: (str): write your description
+        value: (todo): write your description
+    """
     id = name.replace('/', '_')
     if is_tf_expression(value):
         with tf.name_scope('summary_' + id), tf.device(value.device):
@@ -154,6 +245,11 @@ def autosummary(name, value):
 # Create the necessary ops to include autosummaries in TensorBoard report.
 # Note: This should be done only once per graph.
 def finalize_autosummaries():
+    """
+    Finalize autosumaries.
+
+    Args:
+    """
     global _autosummary_finalized
     if _autosummary_finalized:
         return
@@ -172,6 +268,13 @@ def finalize_autosummaries():
 
 # Internal helper for creating autosummary accumulators.
 def _create_autosummary_var(name, value_expr):
+    """
+    Create a autosummary variable.
+
+    Args:
+        name: (str): write your description
+        value_expr: (todo): write your description
+    """
     assert not _autosummary_finalized
     v = tf.cast(value_expr, tf.float32)
     if v.shape.ndims is 0:
@@ -197,6 +300,13 @@ def _create_autosummary_var(name, value_expr):
 _summary_merge_op = None
 
 def save_summaries(filewriter, global_step=None):
+    """
+    Save summaries to filewriter.
+
+    Args:
+        filewriter: (todo): write your description
+        global_step: (todo): write your description
+    """
     global _summary_merge_op
     if _summary_merge_op is None:
         finalize_autosummaries()
@@ -208,6 +318,12 @@ def save_summaries(filewriter, global_step=None):
 # Utilities for importing modules and objects by name.
 
 def import_module(module_or_obj_name):
+    """
+    Imports a module by its name.
+
+    Args:
+        module_or_obj_name: (str): write your description
+    """
     parts = module_or_obj_name.split('.')
     parts[0] = {'np': 'numpy', 'tf': 'tensorflow'}.get(parts[0], parts[0])
     for i in range(len(parts), 0, -1):
@@ -220,16 +336,35 @@ def import_module(module_or_obj_name):
     raise ImportError(module_or_obj_name)
 
 def find_obj_in_module(module, relative_obj_name):
+    """
+    Find an object in - by - name.
+
+    Args:
+        module: (todo): write your description
+        relative_obj_name: (str): write your description
+    """
     obj = module
     for part in relative_obj_name.split('.'):
         obj = getattr(obj, part)
     return obj
 
 def import_obj(obj_name):
+    """
+    Imports a module by its name.
+
+    Args:
+        obj_name: (str): write your description
+    """
     module, relative_obj_name = import_module(obj_name)
     return find_obj_in_module(module, relative_obj_name)
 
 def call_func_by_name(*args, func=None, **kwargs):
+    """
+    Call a function with args kwargs.
+
+    Args:
+        func: (callable): write your description
+    """
     assert func is not None
     return import_obj(func)(*args, **kwargs)
 
@@ -252,6 +387,19 @@ class Optimizer:
         loss_scaling_inc    = 0.0005,
         loss_scaling_dec    = 1.0,
         **kwargs):
+        """
+        Initialize the optimizer.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+            tf_optimizer: (todo): write your description
+            learning_rate: (float): write your description
+            use_loss_scaling: (bool): write your description
+            loss_scaling_init: (todo): write your description
+            loss_scaling_inc: (bool): write your description
+            loss_scaling_dec: (str): write your description
+        """
 
         # Init fields.
         self.name               = name
@@ -273,6 +421,14 @@ class Optimizer:
     # Register the gradients of the given loss function with respect to the given variables.
     # Intended to be called once per GPU.
     def register_gradients(self, loss, vars):
+        """
+        Register gradients with loss.
+
+        Args:
+            self: (todo): write your description
+            loss: (todo): write your description
+            vars: (todo): write your description
+        """
         assert not self._updates_applied
 
         # Validate arguments.
@@ -300,6 +456,12 @@ class Optimizer:
 
     # Construct training op to update the registered variables based on their gradients.
     def apply_updates(self):
+        """
+        Apply updates to all devices.
+
+        Args:
+            self: (todo): write your description
+        """
         assert not self._updates_applied
         self._updates_applied = True
         devices = list(self._dev_grads.keys())
@@ -371,10 +533,23 @@ class Optimizer:
 
     # Reset internal state of the underlying optimizer.
     def reset_optimizer_state(self):
+        """
+        Reset the optimizer state.
+
+        Args:
+            self: (todo): write your description
+        """
         run([var.initializer for opt in self._dev_opt.values() for var in opt.variables()])
 
     # Get or create variable representing log2 of the current dynamic loss scaling factor.
     def get_loss_scaling_var(self, device):
+        """
+        Get loss loss.
+
+        Args:
+            self: (todo): write your description
+            device: (todo): write your description
+        """
         if not self.use_loss_scaling:
             return None
         if device not in self._dev_ls_var:
@@ -384,6 +559,13 @@ class Optimizer:
 
     # Apply dynamic loss scaling for the given expression.
     def apply_loss_scaling(self, value):
+        """
+        Applies loss to loss.
+
+        Args:
+            self: (todo): write your description
+            value: (todo): write your description
+        """
         assert is_tf_expression(value)
         if not self.use_loss_scaling:
             return value
@@ -391,6 +573,13 @@ class Optimizer:
 
     # Undo the effect of dynamic loss scaling for the given expression.
     def undo_loss_scaling(self, value):
+        """
+        Evaluates loss.
+
+        Args:
+            self: (todo): write your description
+            value: (todo): write your description
+        """
         assert is_tf_expression(value)
         if not self.use_loss_scaling:
             return value
@@ -416,6 +605,15 @@ class Network:
         name=None,          # Network name. Used to select TensorFlow name and variable scopes.
         func=None,          # Fully qualified name of the underlying network construction function.
         **static_kwargs):   # Keyword arguments to be passed in to the network construction function.
+        """
+        Initialize the module.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+            func: (callable): write your description
+            static_kwargs: (dict): write your description
+        """
 
         self._init_fields()
         self.name = name
@@ -431,6 +629,12 @@ class Network:
         self.reset_vars()
 
     def _init_fields(self):
+        """
+        Initialize all the fields.
+
+        Args:
+            self: (todo): write your description
+        """
         self.name               = None          # User-specified name, defaults to build func name if None.
         self.scope              = None          # Unique TF graph scope, derived from the user-specified name.
         self.static_kwargs      = dict()        # Arguments passed to the user-supplied build func.
@@ -452,6 +656,12 @@ class Network:
         self._run_cache         = dict()        # Cached graph data for Network.run().
         
     def _init_graph(self):
+        """
+        Initialize the graph.
+
+        Args:
+            self: (todo): write your description
+        """
         # Collect inputs.
         self.input_names = []
         for param in inspect.signature(self._build_func).parameters.values():
@@ -490,14 +700,35 @@ class Network:
 
     # Run initializers for all variables defined by this network.
     def reset_vars(self):
+        """
+        Reset all variables.
+
+        Args:
+            self: (todo): write your description
+        """
         run([var.initializer for var in self.vars.values()])
 
     # Run initializers for all trainable variables defined by this network.
     def reset_trainables(self):
+        """
+        Reset all variables in - placeables.
+
+        Args:
+            self: (todo): write your description
+        """
         run([var.initializer for var in self.trainables.values()])
 
     # Get TensorFlow expression(s) for the output(s) of this network, given the inputs.
     def get_output_for(self, *in_expr, return_as_list=False, **dynamic_kwargs):
+        """
+        Get the output of the graph.
+
+        Args:
+            self: (todo): write your description
+            in_expr: (todo): write your description
+            return_as_list: (bool): write your description
+            dynamic_kwargs: (dict): write your description
+        """
         assert len(in_expr) == self.num_inputs
         all_kwargs = dict(self.static_kwargs)
         all_kwargs.update(dynamic_kwargs)
@@ -512,6 +743,13 @@ class Network:
 
     # Get the local name of a given variable, excluding any surrounding name scopes.
     def get_var_localname(self, var_or_globalname):
+        """
+        Get the local variable name.
+
+        Args:
+            self: (todo): write your description
+            var_or_globalname: (str): write your description
+        """
         assert is_tf_expression(var_or_globalname) or isinstance(var_or_globalname, str)
         globalname = var_or_globalname if isinstance(var_or_globalname, str) else var_or_globalname.name
         assert globalname.startswith(self.scope + '/')
@@ -521,21 +759,49 @@ class Network:
 
     # Find variable by local or global name.
     def find_var(self, var_or_localname):
+        """
+        Find the variable or none if it exists.
+
+        Args:
+            self: (todo): write your description
+            var_or_localname: (str): write your description
+        """
         assert is_tf_expression(var_or_localname) or isinstance(var_or_localname, str)
         return self.vars[var_or_localname] if isinstance(var_or_localname, str) else var_or_localname
 
     # Get the value of a given variable as NumPy array.
     # Note: This method is very inefficient -- prefer to use tfutil.run(list_of_vars) whenever possible.
     def get_var(self, var_or_localname):
+        """
+        Get variable by variable.
+
+        Args:
+            self: (todo): write your description
+            var_or_localname: (str): write your description
+        """
         return self.find_var(var_or_localname).eval()
         
     # Set the value of a given variable based on the given NumPy array.
     # Note: This method is very inefficient -- prefer to use tfutil.set_vars() whenever possible.
     def set_var(self, var_or_localname, new_value):
+        """
+        Set the given variable.
+
+        Args:
+            self: (todo): write your description
+            var_or_localname: (str): write your description
+            new_value: (todo): write your description
+        """
         return set_vars({self.find_var(var_or_localname): new_value})
 
     # Pickle export.
     def __getstate__(self):
+        """
+        Returns a dictionary of this module
+
+        Args:
+            self: (todo): write your description
+        """
         return {
             'version':          2,
             'name':             self.name,
@@ -546,6 +812,13 @@ class Network:
 
     # Pickle import.
     def __setstate__(self, state):
+        """
+        Sets the state.
+
+        Args:
+            self: (todo): write your description
+            state: (dict): write your description
+        """
         self._init_fields()
 
         # Execute custom import handlers.
@@ -572,6 +845,13 @@ class Network:
 
     # Create a clone of this network with its own copy of the variables.
     def clone(self, name=None):
+        """
+        Returns a clone of the network.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+        """
         net = object.__new__(Network)
         net._init_fields()
         net.name = name if name is not None else self.name
@@ -585,18 +865,41 @@ class Network:
 
     # Copy the values of all variables from the given network.
     def copy_vars_from(self, src_net):
+        """
+        Copy vars of the vars of the vars.
+
+        Args:
+            self: (todo): write your description
+            src_net: (todo): write your description
+        """
         assert isinstance(src_net, Network)
         name_to_value = run({name: src_net.find_var(name) for name in self.vars.keys()})
         set_vars({self.find_var(name): value for name, value in name_to_value.items()})
 
     # Copy the values of all trainable variables from the given network.
     def copy_trainables_from(self, src_net):
+        """
+        Copies all the given in src_net to another.
+
+        Args:
+            self: (todo): write your description
+            src_net: (todo): write your description
+        """
         assert isinstance(src_net, Network)
         name_to_value = run({name: src_net.find_var(name) for name in self.trainables.keys()})
         set_vars({self.find_var(name): value for name, value in name_to_value.items()})
 
     # Create new network with the given parameters, and copy all variables from this network.
     def convert(self, name=None, func=None, **static_kwargs):
+        """
+        Creates a new network into a new network.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+            func: (todo): write your description
+            static_kwargs: (dict): write your description
+        """
         net = Network(name, func, **static_kwargs)
         net.copy_vars_from(self)
         return net
@@ -604,6 +907,15 @@ class Network:
     # Construct a TensorFlow op that updates the variables of this network
     # to be slightly closer to those of the given network.
     def setup_as_moving_average_of(self, src_net, beta=0.99, beta_nontrainable=0.0):
+        """
+        Creates the average of the average variables.
+
+        Args:
+            self: (todo): write your description
+            src_net: (todo): write your description
+            beta: (todo): write your description
+            beta_nontrainable: (todo): write your description
+        """
         assert isinstance(src_net, Network)
         with absolute_name_scope(self.scope):
             with tf.name_scope('MovingAvg'):
@@ -626,6 +938,22 @@ class Network:
         out_shrink      = 1,        # Shrink the spatial dimensions of the output(s) by the given factor.
         out_dtype       = None,     # Convert the output to the specified data type.
         **dynamic_kwargs):          # Additional keyword arguments to pass into the network construction function.
+        """
+        Fit the model.
+
+        Args:
+            self: (todo): write your description
+            in_arrays: (array): write your description
+            return_as_list: (bool): write your description
+            print_progress: (array): write your description
+            minibatch_size: (int): write your description
+            num_gpus: (int): write your description
+            out_mul: (array): write your description
+            out_add: (array): write your description
+            out_shrink: (array): write your description
+            out_dtype: (array): write your description
+            dynamic_kwargs: (dict): write your description
+        """
 
         assert len(in_arrays) == self.num_inputs
         num_items = in_arrays[0].shape[0]
@@ -670,6 +998,22 @@ class Network:
         out_shrink      = 1,        # Shrink the spatial dimensions of the output(s) by the given factor.
         out_dtype       = None,     # Convert the output to the specified data type.
         **dynamic_kwargs):          # Additional keyword arguments to pass into the network construction function.
+        """
+        Run the graph.
+
+        Args:
+            self: (todo): write your description
+            in_arrays: (int): write your description
+            return_as_list: (bool): write your description
+            print_progress: (bool): write your description
+            minibatch_size: (int): write your description
+            num_gpus: (int): write your description
+            out_mul: (str): write your description
+            out_add: (str): write your description
+            out_shrink: (str): write your description
+            out_dtype: (str): write your description
+            dynamic_kwargs: (dict): write your description
+        """
 
         assert len(in_arrays) == self.num_inputs
         num_items = in_arrays[0].shape[0]
@@ -721,12 +1065,26 @@ class Network:
     # Returns a list of (name, output_expr, trainable_vars) tuples corresponding to
     # individual layers of the network. Mainly intended to be used for reporting.
     def list_layers(self):
+        """
+        List layers.
+
+        Args:
+            self: (todo): write your description
+        """
         patterns_to_ignore = ['/Setter', '/new_value', '/Shape', '/strided_slice', '/Cast', '/concat']
         all_ops = tf.get_default_graph().get_operations()
         all_ops = [op for op in all_ops if not any(p in op.name for p in patterns_to_ignore)]
         layers = []
 
         def recurse(scope, parent_ops, level):
+            """
+            Recursively recursively recursively.
+
+            Args:
+                scope: (todo): write your description
+                parent_ops: (todo): write your description
+                level: (int): write your description
+            """
             prefix = scope + '/'
             ops = [op for op in parent_ops if op.name == scope or op.name.startswith(prefix)]
 
@@ -753,6 +1111,14 @@ class Network:
 
     # Print a summary table of the network structure.
     def print_layers(self, title=None, hide_layers_with_no_params=False):
+        """
+        Print layers.
+
+        Args:
+            self: (todo): write your description
+            title: (str): write your description
+            hide_layers_with_no_params: (bool): write your description
+        """
         if title is None: title = self.name
         print()
         print('%-28s%-12s%-24s%-24s' % (title, 'Params', 'OutputShape', 'WeightShape'))
@@ -778,6 +1144,13 @@ class Network:
 
     # Construct summary ops to include histograms of all trainable parameters in TensorBoard.
     def setup_weight_histograms(self, title=None):
+        """
+        Create histograms for the histograms.
+
+        Args:
+            self: (todo): write your description
+            title: (str): write your description
+        """
         if title is None: title = self.name
         with tf.name_scope(None), tf.device(None), tf.control_dependencies(None):
             for localname, var in self.trainables.items():

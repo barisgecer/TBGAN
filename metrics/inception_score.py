@@ -39,6 +39,13 @@ softmax = None
 # Call this function with list of images. Each of elements should be a 
 # numpy array with values ranging from 0 to 255.
 def get_inception_score(images, splits=10):
+    """
+    Get the mean and standard deviation.
+
+    Args:
+        images: (todo): write your description
+        splits: (todo): write your description
+    """
   assert(type(images) == list)
   assert(type(images[0]) == np.ndarray)
   assert(len(images[0].shape) == 3)
@@ -70,6 +77,11 @@ def get_inception_score(images, splits=10):
 
 # This function is called automatically.
 def _init_inception():
+    """
+    Initialize a tensor.
+
+    Args:
+    """
   global softmax
   if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
@@ -77,6 +89,14 @@ def _init_inception():
   filepath = os.path.join(MODEL_DIR, filename)
   if not os.path.exists(filepath):
     def _progress(count, block_size, total_size):
+        """
+        Print progress
+
+        Args:
+            count: (int): write your description
+            block_size: (int): write your description
+            total_size: (int): write your description
+        """
       sys.stdout.write('\r>> Downloading %s %.1f%%' % (
           filename, float(count * block_size) / float(total_size) * 100.0))
       sys.stdout.flush()
@@ -120,25 +140,69 @@ def _init_inception():
 
 class API:
     def __init__(self, num_images, image_shape, image_dtype, minibatch_size):
+        """
+        Initialize the session.
+
+        Args:
+            self: (todo): write your description
+            num_images: (int): write your description
+            image_shape: (str): write your description
+            image_dtype: (str): write your description
+            minibatch_size: (int): write your description
+        """
         import config
         globals()['MODEL_DIR'] = os.path.join(config.result_dir, '_inception')
         self.sess = tf.get_default_session()
         _init_inception()
 
     def get_metric_names(self):
+        """
+        Returns a list of metric names.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['IS_mean', 'IS_std']
 
     def get_metric_formatting(self):
+        """
+        Get metric metric metric metric format.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['%-10.4f', '%-10.4f']
 
     def begin(self, mode):
+        """
+        Begin a new mode.
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+        """
         assert mode in ['warmup', 'reals', 'fakes']
         self.images = []
 
     def feed(self, mode, minibatch):
+        """
+        Feed images in the image to the image.
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+            minibatch: (float): write your description
+        """
         self.images.append(minibatch.transpose(0, 2, 3, 1))
 
     def end(self, mode):
+        """
+        Calculate the image
+
+        Args:
+            self: (todo): write your description
+            mode: (str): write your description
+        """
         images = list(np.concatenate(self.images))
         with self.sess.as_default():
             mean, std = get_inception_score(images)
