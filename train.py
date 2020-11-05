@@ -22,6 +22,15 @@ from uv_gan import misc
 def setup_snapshot_image_grid(G, training_set,
     size    = '1080p',      # '1080p' = to be viewed on 1080p display, '4k' = to be viewed on 4k display.
     layout  = 'random'):    # 'random' = grid contents are selected randomly, 'row_per_class' = each row corresponds to one class label.
+    """
+    Setup a 2d grid with a 2d image.
+
+    Args:
+        G: (todo): write your description
+        training_set: (todo): write your description
+        size: (int): write your description
+        layout: (str): write your description
+    """
 
     # Select size.
     gw = 1; gh = 1
@@ -54,6 +63,16 @@ def setup_snapshot_image_grid(G, training_set,
 # Just-in-time processing of training images before feeding them to the networks.
 
 def process_reals(x, lod, mirror_augment, drange_data, drange_net):
+    """
+    Process a new layer.
+
+    Args:
+        x: (str): write your description
+        lod: (todo): write your description
+        mirror_augment: (str): write your description
+        drange_data: (str): write your description
+        drange_net: (str): write your description
+    """
     with tf.name_scope('ProcessReals'):
         if drange_data != drange_net:
             with tf.name_scope('DynamicRange'):
@@ -100,6 +119,26 @@ class TrainingSchedule:
         D_lrate_dict            = {},       # Resolution-specific overrides.
         tick_kimg_base          = 160,      # Default interval of progress snapshots.
         tick_kimg_dict          = {4: 160, 8:140, 16:120, 32:100, 64:80, 128:60, 256:40, 512:20, 1024:10}): # Resolution-specific overrides.
+        """
+        Initialize the kimg.
+
+        Args:
+            self: (todo): write your description
+            cur_nimg: (todo): write your description
+            training_set: (todo): write your description
+            lod_initial_resolution: (todo): write your description
+            lod_training_kimg: (todo): write your description
+            lod_transition_kimg: (todo): write your description
+            minibatch_base: (int): write your description
+            minibatch_dict: (dict): write your description
+            max_minibatch_per_gpu: (int): write your description
+            G_lrate_base: (str): write your description
+            G_lrate_dict: (dict): write your description
+            D_lrate_base: (str): write your description
+            D_lrate_dict: (dict): write your description
+            tick_kimg_base: (todo): write your description
+            tick_kimg_dict: (dict): write your description
+        """
 
         # Training phase.
         self.kimg = cur_nimg / 1000.0
@@ -147,6 +186,26 @@ def train_progressive_gan(
     resume_snapshot         = None,         # Snapshot index to resume training from, None = autodetect.
     resume_kimg             = 0.0,          # Assumed training progress at the beginning. Affects reporting and training schedule.
     resume_time             = 0.0):         # Assumed wallclock time at the beginning. Affects reporting.
+    """
+    Trains network of the network
+
+    Args:
+        G_smoothing: (todo): write your description
+        D_repeats: (int): write your description
+        minibatch_repeats: (todo): write your description
+        reset_opt_for_new_lod: (todo): write your description
+        total_kimg: (todo): write your description
+        mirror_augment: (todo): write your description
+        drange_net: (todo): write your description
+        image_snapshot_ticks: (bool): write your description
+        network_snapshot_ticks: (int): write your description
+        save_tf_graph: (bool): write your description
+        save_weight_histograms: (bool): write your description
+        resume_run_id: (int): write your description
+        resume_snapshot: (str): write your description
+        resume_kimg: (str): write your description
+        resume_time: (str): write your description
+    """
 
     maintenance_start_time = time.time()
     training_set = dataset.load_dataset(data_dir=config.data_dir, verbose=True, **config.dataset)

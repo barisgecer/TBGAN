@@ -200,6 +200,13 @@ def check_or_download_inception(inception_path):
 
 
 def _handle_path(path, sess):
+    """
+    Handle a list of paths.
+
+    Args:
+        path: (str): write your description
+        sess: (todo): write your description
+    """
     if path.endswith('.npz'):
         f = np.load(path)
         m, s = f['mu'][:], f['sigma'][:]
@@ -248,6 +255,16 @@ if __name__ == "__main__":
 
 class API:
     def __init__(self, num_images, image_shape, image_dtype, minibatch_size):
+        """
+        Initialize the graph.
+
+        Args:
+            self: (todo): write your description
+            num_images: (int): write your description
+            image_shape: (str): write your description
+            image_dtype: (str): write your description
+            minibatch_size: (int): write your description
+        """
         import config
         self.network_dir = os.path.join(config.result_dir, '_inception_fid')
         self.network_file = check_or_download_inception(self.network_dir)
@@ -255,20 +272,54 @@ class API:
         create_inception_graph(self.network_file)
 
     def get_metric_names(self):
+        """
+        Returns a list of metric names.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['FID']
 
     def get_metric_formatting(self):
+        """
+        Get metric metric metric metric format.
+
+        Args:
+            self: (todo): write your description
+        """
         return ['%-10.4f']
 
     def begin(self, mode):
+        """
+        Create a new mode.
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+        """
         assert mode in ['warmup', 'reals', 'fakes']
         self.activations = []
 
     def feed(self, mode, minibatch):
+        """
+        Feed feed
+
+        Args:
+            self: (todo): write your description
+            mode: (todo): write your description
+            minibatch: (float): write your description
+        """
         act = get_activations(minibatch.transpose(0,2,3,1), self.sess, batch_size=minibatch.shape[0])
         self.activations.append(act)
 
     def end(self, mode):
+        """
+        R calculate the standard deviation.
+
+        Args:
+            self: (todo): write your description
+            mode: (str): write your description
+        """
         act = np.concatenate(self.activations)
         mu = np.mean(act, axis=0)
         sigma = np.cov(act, rowvar=False)

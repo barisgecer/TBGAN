@@ -11,9 +11,37 @@
 
 
 class EasyDict(dict):
+    """
+    Initialize the init.
+
+    Args:
+        self: (todo): write your description
+    """
     def __init__(self, *args, **kwargs): super().__init__(*args, **kwargs)
+    """
+    Get the value of the given name.
+
+    Args:
+        self: (todo): write your description
+        name: (str): write your description
+    """
     def __getattr__(self, name): return self[name]
+    """
+    Sets an attribute.
+
+    Args:
+        self: (todo): write your description
+        name: (str): write your description
+        value: (todo): write your description
+    """
     def __setattr__(self, name, value): self[name] = value
+    """
+    Removes an attribute from the given name.
+
+    Args:
+        self: (todo): write your description
+        name: (str): write your description
+    """
     def __delattr__(self, name): del self[name]
 
 #----------------------------------------------------------------------------

@@ -24,6 +24,12 @@ import scipy
 #----------------------------------------------------------------------------
 
 def error(msg):
+    """
+    Print an error message
+
+    Args:
+        msg: (str): write your description
+    """
     print('Error: ' + msg)
     exit(1)
 
@@ -31,6 +37,16 @@ def error(msg):
 
 class TFRecordExporter:
     def __init__(self, tfrecord_dir, expected_images, print_progress=True, progress_interval=10):
+        """
+        Initialize the tf.
+
+        Args:
+            self: (todo): write your description
+            tfrecord_dir: (str): write your description
+            expected_images: (int): write your description
+            print_progress: (bool): write your description
+            progress_interval: (int): write your description
+        """
         self.tfrecord_dir       = tfrecord_dir
         self.tfr_prefix         = os.path.join(self.tfrecord_dir, os.path.basename(self.tfrecord_dir))
         self.expected_images    = expected_images
@@ -47,6 +63,12 @@ class TFRecordExporter:
         assert(os.path.isdir(self.tfrecord_dir))
         
     def close(self):
+        """
+        Close the writer.
+
+        Args:
+            self: (todo): write your description
+        """
         if self.print_progress:
             print('%-40s\r' % 'Flushing data...', end='', flush=True)
         for tfr_writer in self.tfr_writers:
@@ -57,11 +79,24 @@ class TFRecordExporter:
             print('Added %d images.' % self.cur_images)
 
     def choose_shuffled_order(self): # Note: Images and labels must be added in shuffled order.
+        """
+        Chooses a random image.
+
+        Args:
+            self: (todo): write your description
+        """
         order = np.arange(self.expected_images)
         np.random.RandomState(123).shuffle(order)
         return order
 
     def add_image(self, img):
+        """
+        Add image to image.
+
+        Args:
+            self: (todo): write your description
+            img: (array): write your description
+        """
         if self.print_progress and self.cur_images % self.progress_interval == 0:
             print('%d / %d\r' % (self.cur_images, self.expected_images), end='', flush=True)
         if self.shape is None:
@@ -87,6 +122,13 @@ class TFRecordExporter:
         self.cur_images += 1
 
     def add_shape(self, img):
+        """
+        Add shape to image.
+
+        Args:
+            self: (todo): write your description
+            img: (array): write your description
+        """
         if self.print_progress and self.cur_images % self.progress_interval == 0:
             print('%d / %d\r' % (self.cur_images, self.expected_images), end='', flush=True)
         if self.shape is None:
@@ -111,6 +153,13 @@ class TFRecordExporter:
         self.cur_images += 1
 
     def add_both(self, img):
+        """
+        Add adversarial image.
+
+        Args:
+            self: (todo): write your description
+            img: (array): write your description
+        """
         if self.print_progress and self.cur_images % self.progress_interval == 0:
             print('%d / %d\r' % (self.cur_images, self.expected_images), end='', flush=True)
         if self.shape is None:
@@ -135,6 +184,13 @@ class TFRecordExporter:
         self.cur_images += 1
 
     def add_labels(self, labels):
+        """
+        Add image labels.
+
+        Args:
+            self: (todo): write your description
+            labels: (array): write your description
+        """
         if self.print_progress:
             print('%-40s\r' % 'Saving labels...', end='', flush=True)
         assert labels.shape[0] == self.cur_images
@@ -142,15 +198,33 @@ class TFRecordExporter:
             np.save(f, labels.astype(np.float32))
             
     def __enter__(self):
+        """
+        Decor function.
+
+        Args:
+            self: (todo): write your description
+        """
         return self
     
     def __exit__(self, *args):
+        """
+        Exit the exit.
+
+        Args:
+            self: (todo): write your description
+        """
         self.close()
 
 #----------------------------------------------------------------------------
 
 class ExceptionInfo(object):
     def __init__(self):
+        """
+        Initialize the traceback.
+
+        Args:
+            self: (todo): write your description
+        """
         self.value = sys.exc_info()[1]
         self.traceback = traceback.format_exc()
 
@@ -158,10 +232,23 @@ class ExceptionInfo(object):
 
 class WorkerThread(threading.Thread):
     def __init__(self, task_queue):
+        """
+        Initialize task queue.
+
+        Args:
+            self: (todo): write your description
+            task_queue: (todo): write your description
+        """
         threading.Thread.__init__(self)
         self.task_queue = task_queue
 
     def run(self):
+        """
+        Run the task. task.
+
+        Args:
+            self: (todo): write your description
+        """
         while True:
             func, args, result_queue = self.task_queue.get()
             if func is None:
@@ -176,6 +263,13 @@ class WorkerThread(threading.Thread):
 
 class ThreadPool(object):
     def __init__(self, num_threads):
+        """
+        Initialize the threads.
+
+        Args:
+            self: (todo): write your description
+            num_threads: (int): write your description
+        """
         assert num_threads >= 1
         self.task_queue = Queue.Queue()
         self.result_queues = dict()
@@ -186,12 +280,26 @@ class ThreadPool(object):
             thread.start()
 
     def add_task(self, func, args=()):
+        """
+        Add a task to the queue.
+
+        Args:
+            self: (todo): write your description
+            func: (todo): write your description
+        """
         assert hasattr(func, '__call__') # must be a function
         if func not in self.result_queues:
             self.result_queues[func] = Queue.Queue()
         self.task_queue.put((func, args, self.result_queues[func]))
 
     def get_result(self, func): # returns (result, args)
+        """
+        Return the result of a function.
+
+        Args:
+            self: (todo): write your description
+            func: (todo): write your description
+        """
         result, args = self.result_queues[func].get()
         if isinstance(result, ExceptionInfo):
             print('\n\nWorker thread caught an exception:\n' + result.traceback)
@@ -199,25 +307,73 @@ class ThreadPool(object):
         return result, args
 
     def finish(self):
+        """
+        Finishes the queue.
+
+        Args:
+            self: (todo): write your description
+        """
         for idx in range(self.num_threads):
             self.task_queue.put((None, (), None))
 
     def __enter__(self): # for 'with' statement
+        """
+        Decor function.
+
+        Args:
+            self: (todo): write your description
+        """
         return self
 
     def __exit__(self, *excinfo):
+        """
+        Finishes the given exception.
+
+        Args:
+            self: (todo): write your description
+            excinfo: (todo): write your description
+        """
         self.finish()
 
     def process_items_concurrently(self, item_iterator, process_func=lambda x: x, pre_func=lambda x: x, post_func=lambda x: x, max_items_in_flight=None):
+        """
+        Process items from a list.
+
+        Args:
+            self: (todo): write your description
+            item_iterator: (todo): write your description
+            process_func: (todo): write your description
+            x: (todo): write your description
+            x: (todo): write your description
+            pre_func: (todo): write your description
+            x: (todo): write your description
+            x: (todo): write your description
+            post_func: (todo): write your description
+            x: (todo): write your description
+            x: (todo): write your description
+            max_items_in_flight: (int): write your description
+        """
         if max_items_in_flight is None: max_items_in_flight = self.num_threads * 4
         assert max_items_in_flight >= 1
         results = []
         retire_idx = [0]
 
         def task_func(prepared, idx):
+            """
+            Return a function for a prepared.
+
+            Args:
+                prepared: (todo): write your description
+                idx: (str): write your description
+            """
             return process_func(prepared)
            
         def retire_result():
+            """
+            Retire the result of a result.
+
+            Args:
+            """
             processed, (prepared, idx) = self.get_result(task_func)
             results[idx] = processed
             while retire_idx[0] < len(results) and results[retire_idx[0]] is not None:
@@ -237,6 +393,12 @@ class ThreadPool(object):
 #----------------------------------------------------------------------------
 
 def display(tfrecord_dir):
+    """
+    Display tfrecord information.
+
+    Args:
+        tfrecord_dir: (str): write your description
+    """
     print('Loading dataset "%s"' % tfrecord_dir)
     tfutil.init_tf({'gpu_options.allow_growth': True})
     dset = dataset.TFRecordDataset(tfrecord_dir, max_label_size='full', repeat=False, shuffle_mb=0)
@@ -263,6 +425,13 @@ def display(tfrecord_dir):
 #----------------------------------------------------------------------------
 
 def extract(tfrecord_dir, output_dir):
+    """
+    Extract tf.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        output_dir: (str): write your description
+    """
     print('Loading dataset "%s"' % tfrecord_dir)
     tfutil.init_tf({'gpu_options.allow_growth': True})
     dset = dataset.TFRecordDataset(tfrecord_dir, max_label_size=0, repeat=False, shuffle_mb=0)
@@ -290,6 +459,14 @@ def extract(tfrecord_dir, output_dir):
 #----------------------------------------------------------------------------
 
 def compare(tfrecord_dir_a, tfrecord_dir_b, ignore_labels):
+    """
+    Compares two images.
+
+    Args:
+        tfrecord_dir_a: (str): write your description
+        tfrecord_dir_b: (str): write your description
+        ignore_labels: (bool): write your description
+    """
     max_label_size = 0 if ignore_labels else 'full'
     print('Loading dataset "%s"' % tfrecord_dir_a)
     tfutil.init_tf({'gpu_options.allow_growth': True})
@@ -333,6 +510,13 @@ def compare(tfrecord_dir_a, tfrecord_dir_b, ignore_labels):
 #----------------------------------------------------------------------------
 
 def create_mnist(tfrecord_dir, mnist_dir):
+    """
+    Create mnist dataset.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        mnist_dir: (str): write your description
+    """
     print('Loading MNIST from "%s"' % mnist_dir)
     import gzip
     with gzip.open(os.path.join(mnist_dir, 'train-images-idx3-ubyte.gz'), 'rb') as file:
@@ -357,6 +541,15 @@ def create_mnist(tfrecord_dir, mnist_dir):
 #----------------------------------------------------------------------------
 
 def create_mnistrgb(tfrecord_dir, mnist_dir, num_images=1000000, random_seed=123):
+    """
+    Create adversarial images.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        mnist_dir: (str): write your description
+        num_images: (int): write your description
+        random_seed: (int): write your description
+    """
     print('Loading MNIST from "%s"' % mnist_dir)
     import gzip
     with gzip.open(os.path.join(mnist_dir, 'train-images-idx3-ubyte.gz'), 'rb') as file:
@@ -374,6 +567,13 @@ def create_mnistrgb(tfrecord_dir, mnist_dir, num_images=1000000, random_seed=123
 #----------------------------------------------------------------------------
 
 def create_cifar10(tfrecord_dir, cifar10_dir):
+    """
+    Create cifar10 dataset.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        cifar10_dir: (str): write your description
+    """
     print('Loading CIFAR-10 from "%s"' % cifar10_dir)
     import pickle
     images = []
@@ -401,6 +601,13 @@ def create_cifar10(tfrecord_dir, cifar10_dir):
 #----------------------------------------------------------------------------
 
 def create_cifar100(tfrecord_dir, cifar100_dir):
+    """
+    Create cifar100.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        cifar100_dir: (str): write your description
+    """
     print('Loading CIFAR-100 from "%s"' % cifar100_dir)
     import pickle
     with open(os.path.join(cifar100_dir, 'train'), 'rb') as file:
@@ -423,6 +630,13 @@ def create_cifar100(tfrecord_dir, cifar100_dir):
 #----------------------------------------------------------------------------
 
 def create_svhn(tfrecord_dir, svhn_dir):
+    """
+    Create tfrecord.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        svhn_dir: (str): write your description
+    """
     print('Loading SVHN from "%s"' % svhn_dir)
     import pickle
     images = []
@@ -450,6 +664,15 @@ def create_svhn(tfrecord_dir, svhn_dir):
 #----------------------------------------------------------------------------
 
 def create_lsun(tfrecord_dir, lmdb_dir, resolution=256, max_images=None):
+    """
+    Create images from png file.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        lmdb_dir: (str): write your description
+        resolution: (str): write your description
+        max_images: (int): write your description
+    """
     print('Loading LSUN dataset from "%s"' % lmdb_dir)
     import lmdb # pip install lmdb
     import cv2 # pip install opencv-python
@@ -483,6 +706,15 @@ def create_lsun(tfrecord_dir, lmdb_dir, resolution=256, max_images=None):
 #----------------------------------------------------------------------------
 
 def create_celeba(tfrecord_dir, celeba_dir, cx=89, cy=121):
+    """
+    Create a png file.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        celeba_dir: (str): write your description
+        cx: (str): write your description
+        cy: (str): write your description
+    """
     print('Loading CelebA from "%s"' % celeba_dir)
     glob_pattern = os.path.join(celeba_dir, 'img_align_celeba_png', '*.png')
     image_filenames = sorted(glob.glob(glob_pattern))
@@ -502,6 +734,16 @@ def create_celeba(tfrecord_dir, celeba_dir, cx=89, cy=121):
 #----------------------------------------------------------------------------
 
 def create_celebahq(tfrecord_dir, celeba_dir, delta_dir, num_threads=4, num_tasks=100):
+    """
+    Create tfrecord for a tfrecord.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        celeba_dir: (str): write your description
+        delta_dir: (str): write your description
+        num_threads: (int): write your description
+        num_tasks: (int): write your description
+    """
     print('Loading CelebA from "%s"' % celeba_dir)
     expected_images = 202599
     if len(glob.glob(os.path.join(celeba_dir, 'img_celeba', '*.jpg'))) != expected_images:
@@ -543,9 +785,21 @@ def create_celebahq(tfrecord_dir, celeba_dir, delta_dir, num_threads=4, num_task
         error('create_celebahq requires libjpeg version 8d') # conda install jpeg=8d
 
     def rot90(v):
+        """
+        Rotate the given vector.
+
+        Args:
+            v: (array): write your description
+        """
         return np.array([-v[1], v[0]])
 
     def process_func(idx):
+        """
+        Process a single image
+
+        Args:
+            idx: (int): write your description
+        """
         # Load original image.
         orig_idx = fields['orig_idx'][idx]
         orig_file = fields['orig_file'][idx]
@@ -646,6 +900,14 @@ def create_celebahq(tfrecord_dir, celeba_dir, delta_dir, num_threads=4, num_task
 #----------------------------------------------------------------------------
 
 def create_from_images(tfrecord_dir, image_dir, shuffle):
+    """
+    Create a tf.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        image_dir: (str): write your description
+        shuffle: (bool): write your description
+    """
     print('Loading images from "%s"' % image_dir)
     image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
     if len(image_filenames) == 0:
@@ -680,6 +942,14 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
 #----------------------------------------------------------------------------
 
 def create_from_pkl(tfrecord_dir, image_dir, shuffle):
+    """
+    Create a tf.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        image_dir: (str): write your description
+        shuffle: (bool): write your description
+    """
     print('Loading images from "%s"' % image_dir)
     image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
     if len(image_filenames) == 0:
@@ -711,6 +981,15 @@ def create_from_pkl(tfrecord_dir, image_dir, shuffle):
 #----------------------------------------------------------------------------
 
 def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
+    """
+    Create a png from pickle file.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        image_dir: (str): write your description
+        pickle_dir: (str): write your description
+        shuffle: (bool): write your description
+    """
     print('Loading images from "%s"' % image_dir)
 
     image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
@@ -744,6 +1023,16 @@ def create_from_pkl_img(tfrecord_dir, image_dir, pickle_dir, shuffle):
 #----------------------------------------------------------------------------
 
 def create_from_pkl_img_norm(tfrecord_dir, image_dir, pickle_dir, normal_dir, shuffle):
+    """
+    Create tf. pkl.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        image_dir: (str): write your description
+        pickle_dir: (str): write your description
+        normal_dir: (str): write your description
+        shuffle: (bool): write your description
+    """
     print('Loading images from "%s"' % image_dir)
 
     image_filenames = sorted(glob.glob(os.path.join(image_dir, '*')))
@@ -779,6 +1068,14 @@ def create_from_pkl_img_norm(tfrecord_dir, image_dir, pickle_dir, normal_dir, sh
 #----------------------------------------------------------------------------
 
 def create_from_hdf5(tfrecord_dir, hdf5_filename, shuffle):
+    """
+    Create a tf. hdf5 files.
+
+    Args:
+        tfrecord_dir: (str): write your description
+        hdf5_filename: (str): write your description
+        shuffle: (bool): write your description
+    """
     print('Loading HDF5 archive from "%s"' % hdf5_filename)
     import h5py # conda install h5py
     with h5py.File(hdf5_filename, 'r') as hdf5_file:
@@ -794,6 +1091,12 @@ def create_from_hdf5(tfrecord_dir, hdf5_filename, shuffle):
 #----------------------------------------------------------------------------
 
 def execute_cmdline(argv):
+    """
+    Parse command line arguments.
+
+    Args:
+        argv: (list): write your description
+    """
     prog = argv[0]
     parser = argparse.ArgumentParser(
         prog        = prog,
@@ -803,6 +1106,14 @@ def execute_cmdline(argv):
     subparsers = parser.add_subparsers(dest='command')
     subparsers.required = True
     def add_command(cmd, desc, example=None):
+        """
+        Add a sub - command.
+
+        Args:
+            cmd: (str): write your description
+            desc: (str): write your description
+            example: (list): write your description
+        """
         epilog = 'Example: %s %s' % (prog, example) if example is not None else None
         return subparsers.add_parser(cmd, description=desc, help=desc, epilog=epilog)
 

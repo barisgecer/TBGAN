@@ -13,6 +13,12 @@ from uv_gan import tfutil
 # Convenience func that casts all of its arguments to tf.float32.
 
 def fp32(*values):
+    """
+    Convert a tuple.
+
+    Args:
+        values: (str): write your description
+    """
     if len(values) == 1 and isinstance(values[0], tuple):
         values = values[0]
     values = tuple(tf.cast(v, tf.float32) for v in values)
@@ -23,6 +29,17 @@ def fp32(*values):
 
 def G_wgan_acgan(G, D, opt, training_set, minibatch_size,
     cond_weight = 1.0): # Weight of the conditioning term.
+    """
+    Wgan g_w g_acgan.
+
+    Args:
+        G: (todo): write your description
+        D: (todo): write your description
+        opt: (todo): write your description
+        training_set: (todo): write your description
+        minibatch_size: (int): write your description
+        cond_weight: (array): write your description
+    """
 
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     labels = training_set.get_random_labels_tf(minibatch_size)
@@ -44,6 +61,22 @@ def D_wgangp_acgan(G, D, opt, training_set, minibatch_size, reals, labels,
     wgan_epsilon    = 0.001,    # Weight for the epsilon term, \epsilon_{drift}.
     wgan_target     = 1.0,      # Target value for gradient magnitudes.
     cond_weight     = 1.0):     # Weight of the conditioning terms.
+    """
+    A simple convolutional model.
+
+    Args:
+        G: (todo): write your description
+        D: (todo): write your description
+        opt: (todo): write your description
+        training_set: (todo): write your description
+        minibatch_size: (int): write your description
+        reals: (str): write your description
+        labels: (list): write your description
+        wgan_lambda: (int): write your description
+        wgan_epsilon: (float): write your description
+        wgan_target: (int): write your description
+        cond_weight: (str): write your description
+    """
 
     latents = tf.random_normal([minibatch_size] + G.input_shapes[0][1:])
     fake_images_out = G.get_output_for(latents, labels, is_training=True)

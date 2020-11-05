@@ -12,14 +12,49 @@ import tensorflow as tf
 
 #----------------------------------------------------------------------------
 
+"""
+Lerp ( a b : a b
+
+Args:
+    a: (todo): write your description
+    b: (todo): write your description
+    t: (todo): write your description
+"""
 def lerp(a, b, t): return a + (b - a) * t
+"""
+Compute the sum of two tensors.
+
+Args:
+    a: (todo): write your description
+    b: (todo): write your description
+    t: (todo): write your description
+"""
 def lerp_clip(a, b, t): return a + (b - a) * tf.clip_by_value(t, 0.0, 1.0)
+"""
+Return a new_lambda.
+
+Args:
+    cur_lambda: (str): write your description
+    new_cond: (dict): write your description
+    new_lambda: (float): write your description
+"""
 def cset(cur_lambda, new_cond, new_lambda): return lambda: tf.cond(new_cond, new_lambda, cur_lambda)
 
 #----------------------------------------------------------------------------
 # Get/create weight tensor for a convolutional or fully-connected layer.
 
 def get_weight(shape, gain=np.sqrt(2), use_wscale=False, fan_in=None):
+    """
+    Get weight of a weighted variable.
+
+    Args:
+        shape: (int): write your description
+        gain: (array): write your description
+        np: (todo): write your description
+        sqrt: (array): write your description
+        use_wscale: (bool): write your description
+        fan_in: (int): write your description
+    """
     if fan_in is None: fan_in = np.prod(shape[:-1])
     std = gain / np.sqrt(fan_in) # He init
     if use_wscale:
@@ -32,6 +67,17 @@ def get_weight(shape, gain=np.sqrt(2), use_wscale=False, fan_in=None):
 # Fully-connected layer.
 
 def dense(x, fmaps, gain=np.sqrt(2), use_wscale=False):
+    """
+    Denseulul objective.
+
+    Args:
+        x: (array): write your description
+        fmaps: (todo): write your description
+        gain: (todo): write your description
+        np: (todo): write your description
+        sqrt: (todo): write your description
+        use_wscale: (bool): write your description
+    """
     if len(x.shape) > 2:
         x = tf.reshape(x, [-1, np.prod([d.value for d in x.shape[1:]])])
     w = get_weight([x.shape[1].value, fmaps], gain=gain, use_wscale=use_wscale)
@@ -42,6 +88,18 @@ def dense(x, fmaps, gain=np.sqrt(2), use_wscale=False):
 # Convolutional layer.
 
 def conv2d(x, fmaps, kernel, gain=np.sqrt(2), use_wscale=False):
+    """
+    Conv2d layer.
+
+    Args:
+        x: (int): write your description
+        fmaps: (int): write your description
+        kernel: (array): write your description
+        gain: (int): write your description
+        np: (int): write your description
+        sqrt: (int): write your description
+        use_wscale: (bool): write your description
+    """
     assert kernel >= 1 and kernel % 2 == 1
     w = get_weight([kernel, kernel, x.shape[1].value, fmaps], gain=gain, use_wscale=use_wscale)
     w = tf.cast(w, x.dtype)
@@ -51,6 +109,12 @@ def conv2d(x, fmaps, kernel, gain=np.sqrt(2), use_wscale=False):
 # Apply bias to the given activation tensor.
 
 def apply_bias(x):
+    """
+    Apply bias to x.
+
+    Args:
+        x: (array): write your description
+    """
     b = tf.get_variable('bias', shape=[x.shape[1]], initializer=tf.initializers.zeros())
     b = tf.cast(b, x.dtype)
     if len(x.shape) == 2:
@@ -62,6 +126,13 @@ def apply_bias(x):
 # Leaky ReLU activation. Same as tf.nn.leaky_relu, but supports FP16.
 
 def leaky_relu(x, alpha=0.2):
+    """
+    Relu_relu.
+
+    Args:
+        x: (array): write your description
+        alpha: (float): write your description
+    """
     with tf.name_scope('LeakyRelu'):
         alpha = tf.constant(alpha, dtype=x.dtype, name='alpha')
         return tf.maximum(x * alpha, x)
@@ -70,6 +141,13 @@ def leaky_relu(x, alpha=0.2):
 # Nearest-neighbor upscaling layer.
 
 def upscale2d(x, factor=2):
+    """
+    Reshape layer.
+
+    Args:
+        x: (array): write your description
+        factor: (float): write your description
+    """
     assert isinstance(factor, int) and factor >= 1
     if factor == 1: return x
     with tf.variable_scope('Upscale2D'):
@@ -84,6 +162,18 @@ def upscale2d(x, factor=2):
 # Faster and uses less memory than performing the operations separately.
 
 def upscale2d_conv2d(x, fmaps, kernel, gain=np.sqrt(2), use_wscale=False):
+    """
+    2d convolutional layer.
+
+    Args:
+        x: (todo): write your description
+        fmaps: (todo): write your description
+        kernel: (todo): write your description
+        gain: (todo): write your description
+        np: (todo): write your description
+        sqrt: (todo): write your description
+        use_wscale: (bool): write your description
+    """
     assert kernel >= 1 and kernel % 2 == 1
     w = get_weight([kernel, kernel, fmaps, x.shape[1].value], gain=gain, use_wscale=use_wscale, fan_in=(kernel**2)*x.shape[1].value)
     w = tf.pad(w, [[1,1], [1,1], [0,0], [0,0]], mode='CONSTANT')
@@ -96,6 +186,13 @@ def upscale2d_conv2d(x, fmaps, kernel, gain=np.sqrt(2), use_wscale=False):
 # Box filter downscaling layer.
 
 def downscale2d(x, factor=2):
+    """
+    Downscale a 2d factor.
+
+    Args:
+        x: (todo): write your description
+        factor: (float): write your description
+    """
     assert isinstance(factor, int) and factor >= 1
     if factor == 1: return x
     with tf.variable_scope('Downscale2D'):
@@ -107,6 +204,18 @@ def downscale2d(x, factor=2):
 # Faster and uses less memory than performing the operations separately.
 
 def conv2d_downscale2d(x, fmaps, kernel, gain=np.sqrt(2), use_wscale=False):
+    """
+    Conv2d convolution.
+
+    Args:
+        x: (todo): write your description
+        fmaps: (todo): write your description
+        kernel: (todo): write your description
+        gain: (todo): write your description
+        np: (todo): write your description
+        sqrt: (todo): write your description
+        use_wscale: (bool): write your description
+    """
     assert kernel >= 1 and kernel % 2 == 1
     w = get_weight([kernel, kernel, x.shape[1].value, fmaps], gain=gain, use_wscale=use_wscale)
     w = tf.pad(w, [[1,1], [1,1], [0,0], [0,0]], mode='CONSTANT')
@@ -118,6 +227,13 @@ def conv2d_downscale2d(x, fmaps, kernel, gain=np.sqrt(2), use_wscale=False):
 # Pixelwise feature vector normalization.
 
 def pixel_norm(x, epsilon=1e-8):
+    """
+    Compute the norm of x.
+
+    Args:
+        x: (todo): write your description
+        epsilon: (float): write your description
+    """
     with tf.variable_scope('PixelNorm'):
         return x * tf.rsqrt(tf.reduce_mean(tf.square(x), axis=1, keepdims=True) + epsilon)
 
@@ -125,6 +241,13 @@ def pixel_norm(x, epsilon=1e-8):
 # Minibatch standard deviation.
 
 def minibatch_stddev_layer(x, group_size=4):
+    """
+    Minibatch of layer.
+
+    Args:
+        x: (todo): write your description
+        group_size: (int): write your description
+    """
     with tf.variable_scope('MinibatchStddev'):
         group_size = tf.minimum(group_size, tf.shape(x)[0])     # Minibatch must be divisible by (or smaller than) group_size.
         s = x.shape                                             # [NCHW]  Input shape.
@@ -162,10 +285,46 @@ def G_paper(
     is_template_graph   = False,        # True = template graph constructed by the Network class, False = actual evaluation.
     lod_sep             = 9,
     **kwargs):                          # Ignore unrecognized keyword args.
+    """
+    Paper - layer.
+
+    Args:
+        latents_in: (todo): write your description
+        labels_in: (todo): write your description
+        num_channels: (int): write your description
+        resolution: (todo): write your description
+        label_size: (int): write your description
+        fmap_base: (todo): write your description
+        fmap_decay: (todo): write your description
+        fmap_max: (float): write your description
+        latent_size: (int): write your description
+        normalize_latents: (bool): write your description
+        use_wscale: (bool): write your description
+        use_pixelnorm: (bool): write your description
+        pixelnorm_epsilon: (todo): write your description
+        use_leakyrelu: (bool): write your description
+        dtype: (todo): write your description
+        fused_scale: (todo): write your description
+        structure: (str): write your description
+        is_template_graph: (bool): write your description
+        lod_sep: (str): write your description
+    """
     
     resolution_log2 = int(np.log2(resolution))
     assert resolution == 2**resolution_log2 and resolution >= 4
+    """
+    Return the nfmap of the given stage.
+
+    Args:
+        stage: (str): write your description
+    """
     def nf(stage): return 3*int((min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max))) #*(int(stage>=lod_sep)+1)
+    """
+    Return the norm of x.
+
+    Args:
+        x: (float): write your description
+    """
     def PN(x): return pixel_norm(x, epsilon=pixelnorm_epsilon) if use_pixelnorm else x
     if latent_size is None: latent_size = nf(0)
     if structure is None: structure = 'linear' if is_template_graph else 'recursive'
@@ -178,6 +337,13 @@ def G_paper(
 
     # Building blocks.
     def block(x, res): # res = 2..resolution_log2
+        """
+        Block block.
+
+        Args:
+            x: (todo): write your description
+            res: (todo): write your description
+        """
         with tf.variable_scope('%dx%d' % (2**res, 2**res)):
             if res == 2: # 4x4
                 if normalize_latents: x = pixel_norm(x, epsilon=pixelnorm_epsilon)
@@ -232,6 +398,13 @@ def G_paper(
                 x = tf.concat([tex,shp,nor],1)
             return x
     def torgb(x, res): # res = 2..resolution_log2
+        """
+        Torg convolution.
+
+        Args:
+            x: (array): write your description
+            res: (todo): write your description
+        """
         lod = resolution_log2 - res
         with tf.variable_scope('ToRGB_lod%d' % lod):
             if res <= lod_sep:
@@ -261,6 +434,14 @@ def G_paper(
     # Recursive structure: complex but efficient.
     if structure == 'recursive':
         def grow(x, res, lod):
+            """
+            Grow ( x y
+
+            Args:
+                x: (str): write your description
+                res: (todo): write your description
+                lod: (todo): write your description
+            """
             y = block(x, res)
             img = lambda: upscale2d(torgb(y, res), 2**lod)
             if res > 2: img = cset(img, (lod_in > lod), lambda: upscale2d(lerp(torgb(y, res), upscale2d(torgb(x, res - 1)), lod_in - lod), 2**lod))
@@ -291,10 +472,35 @@ def D_paper(
     is_template_graph   = False,        # True = template graph constructed by the Network class, False = actual evaluation.
     lod_sep             = 9,
     **kwargs):                          # Ignore unrecognized keyword args.
+    """
+    Create a 2d_paper images.
+
+    Args:
+        images_in: (todo): write your description
+        num_channels: (int): write your description
+        resolution: (int): write your description
+        label_size: (int): write your description
+        fmap_base: (todo): write your description
+        fmap_decay: (todo): write your description
+        fmap_max: (int): write your description
+        use_wscale: (bool): write your description
+        mbstd_group_size: (int): write your description
+        dtype: (todo): write your description
+        fused_scale: (todo): write your description
+        structure: (str): write your description
+        is_template_graph: (bool): write your description
+        lod_sep: (str): write your description
+    """
     
     resolution_log2 = int(np.log2(resolution))
     assert resolution == 2**resolution_log2 and resolution >= 4
     def nf(stage):
+        """
+        Return the nfmap of the given stage.
+
+        Args:
+            stage: (str): write your description
+        """
         return 3*int((min(int(fmap_base / (2.0 ** (stage * fmap_decay))), fmap_max))) #*(int(stage>=lod_sep)+1)
     if structure is None: structure = 'linear' if is_template_graph else 'recursive'
     act = leaky_relu
@@ -305,6 +511,13 @@ def D_paper(
 
     # Building blocks.
     def fromrgb(x, res): # res = 2..resolution_log2
+        """
+        Convert from rgb color from rgb.
+
+        Args:
+            x: (todo): write your description
+            res: (todo): write your description
+        """
         with tf.variable_scope('FromRGB_lod%d' % (resolution_log2 - res)):
             if res >= lod_sep-1:
                 inputs = tf.split(x, 3, 1)
@@ -318,6 +531,13 @@ def D_paper(
             else:
                 return act(apply_bias(conv2d(x, fmaps=nf(res-1), kernel=1, use_wscale=use_wscale)))
     def block(x, res): # res = 2..resolution_log2
+        """
+        Block block.
+
+        Args:
+            x: (todo): write your description
+            res: (todo): write your description
+        """
         with tf.variable_scope('%dx%d' % (2**res, 2**res)):
             if res >= lod_sep:
                 inputs = tf.split(x, 3, 1)
@@ -392,6 +612,13 @@ def D_paper(
     # Recursive structure: complex but efficient.
     if structure == 'recursive':
         def grow(res, lod):
+            """
+            Convert an rgb image to rgb.
+
+            Args:
+                res: (todo): write your description
+                lod: (todo): write your description
+            """
             x = lambda: fromrgb(downscale2d(images_in, 2**lod), res)
             if lod > 0: x = cset(x, (lod_in < lod), lambda: grow(res + 1, lod - 1))
             x = block(x(), res); y = lambda: x
