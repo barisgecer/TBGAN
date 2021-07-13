@@ -1,3 +1,9 @@
+# The model is now available [HERE](https://ibug.doc.ic.ac.uk/resources/tbgan/) 
+(Requires to sign End User License Agreement)
+
+
+
+
 # [Synthesizing Coupled 3D Face Modalities by Trunk-Branch Generative Adversarial Networks](https://barisgecer.github.io/files/gecer_tbgan_arxiv.pdf)
 [ArXiv](https://arxiv.org/pdf/1909.02215.pdf), [Supplementary Video](https://www.youtube.com/watch?v=wehBCetIb7E)
 
@@ -9,7 +15,6 @@
 
 
 #### This repo provides Tensorflow implementation of above paper for training
-
 
 ## Abstract
 
@@ -25,6 +30,12 @@ Generating realistic 3D faces is of high importance for computer graphics and co
 
 [<p align="center"><img width="100%" alt="Watch the video" title="Click to Watch on YouTube" src="https://img.youtube.com/vi/wehBCetIb7E/sddefault.jpg" /></p>](https://www.youtube.com/watch?v=wehBCetIb7E)
 
+
+## Testing the Model
+
+- Download the model after signing the agreement and place it under '/results' directory
+- And then Run the test script:
+>python test.py
 
 
 ## Preparing datasets for training
