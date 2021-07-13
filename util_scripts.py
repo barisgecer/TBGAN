@@ -17,7 +17,7 @@ from scipy.spatial.distance import cdist
 from sklearn.utils.extmath import softmax
 import scipy.ndimage as ndimage
 
-import config
+import config_test
 import misc
 import tfutil
 import myutil
@@ -25,12 +25,12 @@ import menpo.io as mio
 
 import menpo3d.io as m3io
 from menpo.shape import TexturedTriMesh, TriMesh, ColouredTriMesh
-from UV_spaces_V2.UV_manipulation_2 import from_UV_2_3D, from_3D_2_UV, UV_tex_2_UV
+from UV_manipulation_2 import from_UV_2_3D
 from menpo.image import Image
 
 #----------------------------------------------------------------------------
 # Generate random images or image grids using a previously trained network.
-# To run, uncomment the appropriate line in config.py and launch train.py.
+# To run, uncomment the appropriate line in config_test.py and launch train.py.
 
 def get_generator(run_id, snapshot=None, image_shrink=1, minibatch_size=8):
     network_pkl = misc.locate_network_pkl(run_id, snapshot)
@@ -39,7 +39,7 @@ def get_generator(run_id, snapshot=None, image_shrink=1, minibatch_size=8):
     G, D, Gs = misc.load_network_pkl(run_id, snapshot)
     latent = tf.get_variable('latent',shape=(1,512),trainable=True)
     label = tf.get_variable('label',shape=(1,0),trainable=True,initializer=tf.zeros_initializer)
-    images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=0.5, out_add=0.5, out_shrink=image_shrink, out_dtype=np.float32)
+    images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus, out_mul=0.5, out_add=0.5, out_shrink=image_shrink, out_dtype=np.float32)
     sess = tf.get_default_session()
 
     sess.run(tf.variables_initializer([latent, label]))
@@ -56,7 +56,7 @@ def fit_real_images(run_id, snapshot=None, num_pngs=1, image_shrink=1, png_prefi
     G, D, Gs = misc.load_network_pkl(run_id, snapshot)
     latent = tf.get_variable('latent',shape=(1,512),trainable=True)
     label = tf.get_variable('label',shape=(1,0),trainable=True)
-    images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config.num_gpus)
+    images = Gs.fit(latent, label, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus)
     sess = tf.get_default_session()
 
     target = tf.placeholder(tf.float32,name='target')
@@ -99,12 +99,12 @@ def generate_fake_images_glob(run_id, snapshot=None, grid_size=[1,1], num_pngs=1
     latents = random_state.randn(num_pngs, *G.input_shape[1:]).astype(np.float32)
     dist = cdist(latents,latents)
     np.fill_diagonal(dist,100)
-    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    result_subdir = misc.create_result_subdir(config_test.result_dir, config_test.desc)
     for png_idx in range(num_pngs):
         print('Generating png %d / %d...' % (png_idx, num_pngs))
         latents = misc.random_latents(np.prod(grid_size), Gs, random_state=random_state)
         labels = np.zeros([latents.shape[0], 0], np.float32)
-        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
         misc.save_image_grid(images, os.path.join(result_subdir, '%s%06d.png' % (png_prefix, png_idx)), [0,255], grid_size)
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
 
@@ -117,13 +117,13 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, nu
     print('Loading network from "%s"...' % network_pkl)
     G, D, Gs = misc.load_network_pkl(run_id, snapshot)
 
-    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    result_subdir = misc.create_result_subdir(config_test.result_dir, config_test.desc)
     for png_idx in range(int(num_pngs/batch_size)):
         start = time.time()
         print('Generating png %d-%d / %d... in ' % (png_idx*batch_size,(png_idx+1)*batch_size, num_pngs),end='')
         latents = misc.random_latents(np.prod(grid_size)*batch_size, Gs, random_state=random_state)
-        labels = np.zeros([latents.shape[0], 0], np.float32)
-        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_shrink=image_shrink)
+        labels = np.zeros([latents.shape[0], 7], np.float32)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus, out_shrink=image_shrink)
         for i in range(batch_size):
             if images.shape[1]==3:
                 mio.export_pickle(images[i],os.path.join(result_subdir, '%s%06d.pkl' % (png_prefix, png_idx*batch_size+i)))
@@ -144,7 +144,7 @@ def generate_fake_images(run_id, snapshot=None, grid_size=[1,1],batch_size=8, nu
 
 #----------------------------------------------------------------------------
 # Generate MP4 video of random interpolations using a previously trained network.
-# To run, uncomment the appropriate line in config.py and launch train.py.
+# To run, uncomment the appropriate line in config_test.py and launch train.py.
 
 def generate_interpolation_video(run_id, snapshot=None, grid_size=[1,1], image_shrink=1, image_zoom=1, duration_sec=60.0, smoothing_sec=1.0, mp4=None, mp4_fps=30, mp4_codec='libx265', mp4_bitrate='16M', random_seed=1000, minibatch_size=8):
     network_pkl = misc.locate_network_pkl(run_id, snapshot)
@@ -167,7 +167,7 @@ def generate_interpolation_video(run_id, snapshot=None, grid_size=[1,1], image_s
         frame_idx = int(np.clip(np.round(t * mp4_fps), 0, num_frames - 1))
         latents = all_latents[frame_idx]
         labels = np.zeros([latents.shape[0], 0], np.float32)
-        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
         grid = misc.create_image_grid(images, grid_size).transpose(1, 2, 0) # HWC
         if image_zoom > 1:
             grid = scipy.ndimage.zoom(grid, [image_zoom, image_zoom, 1], order=0)
@@ -177,13 +177,13 @@ def generate_interpolation_video(run_id, snapshot=None, grid_size=[1,1], image_s
 
     # Generate video.
     import moviepy.editor # pip install moviepy
-    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    result_subdir = misc.create_result_subdir(config_test.result_dir, config_test.desc)
     moviepy.editor.VideoClip(make_frame, duration=duration_sec).write_videofile(os.path.join(result_subdir, mp4), fps=mp4_fps, codec='libx264', bitrate=mp4_bitrate)
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
 
 #----------------------------------------------------------------------------
 # Generate MP4 video of random interpolations using a previously trained network.
-# To run, uncomment the appropriate line in config.py and launch train.py.
+# To run, uncomment the appropriate line in config_test.py and launch train.py.
 
 def generate_interpolation_images(run_id, snapshot=None, grid_size=[1,1], image_shrink=1, image_zoom=1, duration_sec=60.0, smoothing_sec=1.0, mp4=None, mp4_fps=30, mp4_codec='libx265', mp4_bitrate='16M', random_seed=1000, minibatch_size=8):
 
@@ -209,20 +209,20 @@ def generate_interpolation_images(run_id, snapshot=None, grid_size=[1,1], image_
     # model_mean = lsfm_model.mean().copy()
     # mask = mio.import_pickle('../UV_spaces_V2/mask_full_2_crop.pkl')
     lsfm_tcoords = \
-    mio.import_pickle('../UV_spaces_V2/UV_dicts/crop_face/strech/512_UV_dict.pkl')['tcoords']
+    mio.import_pickle('512_UV_dict.pkl')['tcoords']
     lsfm_params = []
-    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    result_subdir = misc.create_result_subdir(config_test.result_dir, config_test.desc)
     for png_idx in range(int(num_frames/minibatch_size)):
         start = time.time()
         print('Generating png %d-%d / %d... in ' % (png_idx*minibatch_size,(png_idx+1)*minibatch_size, num_frames),end='')
         latents = all_latents[png_idx*minibatch_size:(png_idx+1)*minibatch_size,0,:Gs.input_shape[1:][0]]
         labels = all_latents[png_idx*minibatch_size:(png_idx+1)*minibatch_size,0,Gs.input_shape[1:][0]:]
         labels_softmax = softmax(labels) *np.array([10,10,10,10,5,3,10])
-        images = Gs.run(latents, labels_softmax, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_shrink=image_shrink)
+        images = Gs.run(latents, labels_softmax, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus, out_shrink=image_shrink)
         for i in range(minibatch_size):
             texture = Image(np.clip(images[i,0:3]/2+0.5,0,1))
             img_shape = ndimage.gaussian_filter(images[i,3:6], sigma=(0, 3, 3), order=0)
-            mesh_raw = from_UV_2_3D(Image(img_shape),topology='crop',uv_layout='stretch')
+            mesh_raw = from_UV_2_3D(Image(img_shape),topology='full',uv_layout='oval')
             # model_mean.points[mask,:] = mesh_raw.points
             normals = images[i,6:9]
             normals_norm = (normals - normals.min()) / (normals.max() - normals.min())
@@ -230,6 +230,7 @@ def generate_interpolation_images(run_id, snapshot=None, grid_size=[1,1], image_
             # lsfm_params.append(lsfm_model.project(mesh_raw))
             t_mesh = TexturedTriMesh(mesh.points, lsfm_tcoords.points, texture, mesh.trilist)
             m3io.export_textured_mesh(t_mesh, os.path.join(result_subdir, '%06d.obj' % (png_idx * minibatch_size + i)),texture_extension='.png')
+            fix_obj(os.path.join(result_subdir, '%06d.obj' % (png_idx * minibatch_size + i)))
             mio.export_image(Image(normals_norm), os.path.join(result_subdir, '%06d_nor.png' % (png_idx * minibatch_size + i)))
         print('%0.2f seconds' % (time.time() - start))
     mio.export_pickle(lsfm_params,os.path.join(result_subdir, 'lsfm_params.pkl'))
@@ -258,7 +259,7 @@ def generate_interpolation_video_bydim(run_id, snapshot=None, grid_size=[1,1], i
         frame_idx = int(np.clip(np.round(t * mp4_fps), 0, num_frames - 1))
         latents = all_latents[frame_idx]
         labels = np.zeros([latents.shape[0], 0], np.float32)
-        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
+        images = Gs.run(latents, labels, minibatch_size=minibatch_size, num_gpus=config_test.num_gpus, out_mul=127.5, out_add=127.5, out_shrink=image_shrink, out_dtype=np.uint8)
         grid = misc.create_image_grid(images, grid_size).transpose(1, 2, 0) # HWC
         if image_zoom > 1:
             grid = scipy.ndimage.zoom(grid, [image_zoom, image_zoom, 1], order=0)
@@ -268,13 +269,13 @@ def generate_interpolation_video_bydim(run_id, snapshot=None, grid_size=[1,1], i
 
     # Generate video.
     import moviepy.editor # pip install moviepy
-    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    result_subdir = misc.create_result_subdir(config_test.result_dir, config_test.desc)
     moviepy.editor.VideoClip(make_frame, duration=duration_sec).write_videofile(os.path.join(result_subdir, mp4), fps=mp4_fps, codec='libx264', bitrate=mp4_bitrate)
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
 
 #----------------------------------------------------------------------------
 # Generate MP4 video of training progress for a previous training run.
-# To run, uncomment the appropriate line in config.py and launch train.py.
+# To run, uncomment the appropriate line in config_test.py and launch train.py.
 
 def generate_training_video(run_id, duration_sec=20.0, time_warp=1.5, mp4=None, mp4_fps=30, mp4_codec='libx265', mp4_bitrate='16M'):
     src_result_subdir = misc.locate_result_subdir(run_id)
@@ -319,13 +320,13 @@ def generate_training_video(run_id, duration_sec=20.0, time_warp=1.5, mp4=None, 
 
     # Generate video.
     import moviepy.editor # pip install moviepy
-    result_subdir = misc.create_result_subdir(config.result_dir, config.desc)
+    result_subdir = misc.create_result_subdir(config_test.result_dir, config_test.desc)
     moviepy.editor.VideoClip(make_frame, duration=duration_sec).write_videofile(os.path.join(result_subdir, mp4), fps=mp4_fps, codec='libx264', bitrate=mp4_bitrate)
     open(os.path.join(result_subdir, '_done.txt'), 'wt').close()
 
 #----------------------------------------------------------------------------
 # Evaluate one or more metrics for a previous training run.
-# To run, uncomment one of the appropriate lines in config.py and launch train.py.
+# To run, uncomment one of the appropriate lines in config_test.py and launch train.py.
 
 def evaluate_metrics(run_id, log, metrics, num_images, real_passes, minibatch_size=None):
     metric_class_names = {
@@ -409,12 +410,12 @@ def evaluate_metrics(run_id, log, metrics, num_images, real_passes, minibatch_si
         mode ='fakes'
         [obj.begin(mode) for obj in metric_objs]
         time_begin = time.time()
-        with tf.Graph().as_default(), tfutil.create_session(config.tf_config).as_default():
+        with tf.Graph().as_default(), tfutil.create_session(config_test.tf_config).as_default():
             G, D, Gs = misc.load_pkl(snapshot_pkl)
             for begin in range(0, num_images, minibatch_size):
                 end = min(begin + minibatch_size, num_images)
                 latents = misc.random_latents(end - begin, Gs)
-                images = Gs.run(latents, labels[begin:end], num_gpus=config.num_gpus, out_mul=127.5, out_add=127.5, out_dtype=np.uint8)
+                images = Gs.run(latents, labels[begin:end], num_gpus=config_test.num_gpus, out_mul=127.5, out_add=127.5, out_dtype=np.uint8)
                 if images.shape[1] == 1:
                     images = np.tile(images, [1, 3, 1, 1]) # grayscale => RGB
                 [obj.feed(mode, images) for obj in metric_objs]
@@ -425,5 +426,32 @@ def evaluate_metrics(run_id, log, metrics, num_images, real_passes, minibatch_si
                 print(fmt % val, end='')
         print()
     print()
+
+
+def fix_obj(fp):
+    os.path.dirname(fp)
+    template = """# Produced by Dimensional Imaging OBJ exporter
+# http://www.di3d.com
+#
+#
+newmtl merged_material
+Ka  0.5 0.5 0.5
+Kd  0.5 0.5 0.5
+Ks  0.47 0.47 0.47
+d 1
+Ns 0
+illum 2
+map_Kd {}.png
+#
+#
+# EOF""".format(os.path.splitext(os.path.basename(fp))[0])
+    with open(os.path.join(os.path.dirname(fp), os.path.splitext(os.path.basename(fp))[0] + '.mtl'), 'w') as f:
+        f.write(template)
+
+    with open(fp, 'r+')  as f:
+        content = f.read()
+        f.seek(0, 0)
+        f.write('mtllib ' + os.path.splitext(os.path.basename(fp))[0] + '.mtl' + '\n' + content)
+
 
 #----------------------------------------------------------------------------
