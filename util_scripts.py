@@ -17,10 +17,10 @@ from scipy.spatial.distance import cdist
 from sklearn.utils.extmath import softmax
 import scipy.ndimage as ndimage
 
-from uv_gan import config
-from uv_gan import misc
-from uv_gan import tfutil
-from uv_gan import myutil
+import config
+import misc
+import tfutil
+import myutil
 import menpo.io as mio
 
 import menpo3d.io as m3io

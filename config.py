@@ -19,8 +19,8 @@ class EasyDict(dict):
 #----------------------------------------------------------------------------
 # Paths.
 
-data_dir = '/media/data/'
-result_dir = '/media/logs-nvidia'
+data_dir = './'
+result_dir = './results'
 
 #----------------------------------------------------------------------------
 # TensorFlow options.
@@ -41,12 +41,12 @@ desc        = 'pgan'                                        # Description string
 random_seed = 1000                                          # Global random seed.
 dataset     = EasyDict()                                    # Options for dataset.load_dataset().
 train       = EasyDict(func='train.train_progressive_gan')  # Options for main training func.
-G           = EasyDict(func='uv_gan.networks.G_paper')             # Options for generator network.
+G           = EasyDict(func='networks.G_paper')             # Options for generator network.
 D           = EasyDict(func='networks.D_paper')             # Options for discriminator network.
 G_opt       = EasyDict(beta1=0.0, beta2=0.99, epsilon=1e-8) # Options for generator optimizer.
 D_opt       = EasyDict(beta1=0.0, beta2=0.99, epsilon=1e-8) # Options for discriminator optimizer.
-G_loss      = EasyDict(func='uv_gan.loss.G_wgan_acgan')            # Options for generator loss.
-D_loss      = EasyDict(func='uv_gan.loss.D_wgangp_acgan')          # Options for discriminator loss.
+G_loss      = EasyDict(func='loss.G_wgan_acgan')            # Options for generator loss.
+D_loss      = EasyDict(func='loss.D_wgangp_acgan')          # Options for discriminator loss.
 sched       = EasyDict()                                    # Options for train.TrainingSchedule.
 grid        = EasyDict(size='1080p', layout='random')       # Options for train.setup_snapshot_image_grid().
 
@@ -116,18 +116,3 @@ desc += '-VERBOSE'; sched.tick_kimg_base = 100; sched.tick_kimg_dict = {}; train
 #train = EasyDict(func='util_scripts.evaluate_metrics', run_id=23, log='metric-fid-50k.txt', metrics=['fid'], num_images=50000, real_passes=1); num_gpus = 1; desc = train.log.split('.')[0] + '-' + str(train.run_id)
 #train = EasyDict(func='util_scripts.evaluate_metrics', run_id=23, log='metric-is-50k.txt', metrics=['is'], num_images=50000, real_passes=1); num_gpus = 1; desc = train.log.split('.')[0] + '-' + str(train.run_id)
 #train = EasyDict(func='util_scripts.evaluate_metrics', run_id=23, log='metric-msssim-20k.txt', metrics=['msssim'], num_images=20000, real_passes=1); num_gpus = 1; desc = train.log.split('.')[0] + '-' + str(train.run_id)
-
-#----------------------------------------------------------------------------
-
-import platform
-print(platform.node())
-if platform.node() != "bg2715" :
-    # ----------------------------------------------------------------------------
-    # Paths.
-
-    data_dir = '/data/baris'
-    result_dir = '/vol/bitbucket/bg2715/logs-pgan'
-
-if platform.node() == "facesoft-DGX-Station":
-    data_dir = '/raid/baris/data'
-    result_dir = '/raid/baris/logs'

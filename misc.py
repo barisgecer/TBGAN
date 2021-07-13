@@ -16,9 +16,9 @@ from collections import OrderedDict
 import scipy.ndimage
 import PIL.Image
 
-from uv_gan import config
-from uv_gan import dataset
-from uv_gan import legacy
+import config
+import dataset
+import legacy
 
 #----------------------------------------------------------------------------
 # Convenience wrappers for pickle that are able to load data produced by

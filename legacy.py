@@ -9,8 +9,8 @@ import pickle
 import inspect
 import numpy as np
 
-from uv_gan import tfutil
-from uv_gan import networks
+import tfutil
+import networks
 
 #----------------------------------------------------------------------------
 # Custom unpickler that is able to load network pickles produced by
@@ -21,10 +21,9 @@ class LegacyUnpickler(pickle.Unpickler):
         super().__init__(*args, **kwargs)
 
     def find_class(self, module, name):
+        module = module.replace('uv_gan.','')
         if module == 'network' and name == 'Network':
             return tfutil.Network
-        if any([module ==s for s in ["config", "dataset", "dataset_tool","legacy","loss","misc","myutil","networks","tfutil","util_scripts","train"]]):
-            module = 'uv_gan.'+module
         return super().find_class(module, name)
 
 #----------------------------------------------------------------------------

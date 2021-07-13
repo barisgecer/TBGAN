@@ -16,8 +16,8 @@ import numpy as np
 import tensorflow as tf
 import PIL.Image
 
-from uv_gan import tfutil
-from uv_gan import dataset
+import tfutil
+import dataset
 import menpo.io as mio
 import scipy
 

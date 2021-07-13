@@ -7,7 +7,7 @@
 
 import tensorflow as tf
 
-from uv_gan import tfutil
+import tfutil
 
 #----------------------------------------------------------------------------
 # Convenience func that casts all of its arguments to tf.float32.

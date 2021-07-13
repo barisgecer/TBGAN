@@ -10,10 +10,10 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from uv_gan import config
-from uv_gan import tfutil
-from uv_gan import dataset
-from uv_gan import misc
+import config
+import tfutil
+import dataset
+import misc
 
 #----------------------------------------------------------------------------
 # Choose the size and contents of the image snapshot grids that are exported
