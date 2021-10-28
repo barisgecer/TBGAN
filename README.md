@@ -34,8 +34,10 @@ Generating realistic 3D faces is of high importance for computer graphics and co
 ## Testing the Model
 
 - Download the model after signing the agreement and place it under '/results' directory
+- Install menpo3d by
+> pip install menpo3d
 - And then Run the test script:
->python test.py
+> python test.py
 
 
 ## Preparing datasets for training
@@ -107,7 +109,7 @@ Training results can be analyzed in several ways:
   * Suppose you have an ongoing training run titled `010-pgan-celebahq-preset-v1-1gpu-fp32`, and you want to generate a video of random interpolations for the latest snapshot.
   * Uncomment the `generate_interpolation_video` line in `config.py`, replace `run_id=10`, and run `python train.py`
   * The script will automatically locate the latest network snapshot and create a new result directory containing a single MP4 file.
-* **Quality metrics**: Similar to the previous example, `config.py` also contains pre-defined configs to compute various quality metrics (Sliced Wasserstein distance, Fréchet inception distance, etc.) for an existing training run. The metrics are computed for each network snapshot in succession and stored in `metric-*.txt` in the original result directory.
+* **Quality metrics**: Similar to the previous example, `config.py` also contains pre-defined configs to compute various quality metrics (Sliced Wasserstein distance, FrÃ©chet inception distance, etc.) for an existing training run. The metrics are computed for each network snapshot in succession and stored in `metric-*.txt` in the original result directory.
 
 
 ## Acknowledgement
